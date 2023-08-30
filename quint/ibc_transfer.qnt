@@ -198,6 +198,11 @@ module ibc_transfer {
 
     // Reply to a message with a given id.
     action reply: bool =
-        nondet id = oneOf(1.to(10))
+        nondet id = oneOf(storage.replyQueue.keys())
         reply_deterministic(id)
+
+    action step: bool = any {
+        send,
+        reply
+    }
 }
