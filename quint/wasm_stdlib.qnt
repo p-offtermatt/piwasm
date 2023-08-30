@@ -64,4 +64,9 @@ module wasm_stdlib {
     type Env = {
         contract: ContractInfo
     }
+
+    type Reply = {
+        id: int,
+        result: StdResult
+    }
 }

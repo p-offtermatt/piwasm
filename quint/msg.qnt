@@ -2,7 +2,9 @@
 
 module msg {
 
-    type InstantiateMsg = {}
+    type InstantiateMsg = {data: str}
+
+    pure def GetInstantiateMsg: InstantiateMsg = {data: "Hello, World!"}
 
     type ExecuteMsg_Send = {
         channel: str,
@@ -12,6 +14,4 @@ module msg {
         // no support for options, so just uint here
         timeout_height: uint64
     }
-
-    type MigrateMsg = {}
 }
