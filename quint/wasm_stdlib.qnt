@@ -1,9 +1,15 @@
+// types and functions that are part of the wasm stdlib.
+// this is only a subset, and some types are only partially defined here, e.g. with less fields than
+// in the real cosmwasm lib.
 module wasm_stdlib {
     type Addr = str
 
+    // this is just str in the real cosmwasm lib, but makes the Quint code more readable.
+    type Denom = str
+
     type Coin = {
-        denom: str,
-        amount: uint128
+        denom: Denom,
+        amount: int
     }
 
     type MsgInfo = {
@@ -41,21 +47,6 @@ module wasm_stdlib {
         error: error,
         res: {data: "error"}
     }
-
-    pure def set_contract_version_deterministic(name: str, version: str, willError: bool): StdResult = 
-        if (willError) {
-            val err = {msg: "deserialization error"}
-            Err(err)
-        } else {
-            val res = {data: "data"}
-            Ok(res)
-        }
-
-    // models the set_contract_version function in the wasm stdlib.
-    // we do not model its logic, but instead nondeterministically return an error or a success.
-    pure def set_contract_version(name: str, version: str): StdResult =
-    nondet err = oneOf(Set(true, false))
-    set_contract_version_deterministic(name, version, err)
 
     type ContractInfo = {
         address: Addr
