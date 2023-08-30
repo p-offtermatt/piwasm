@@ -50,11 +50,16 @@ module ibc_transfer {
         // a running id for replies.
         runningId: int,
         // keep a set of addresses that have had successful ibc transfers acknowledged
-        successfulTransfers: Set[str]
+        successfulTransfers: Set[Addr]
     }
 
-    // the contract storage - the only variable in the contract
+    // the contract storage - the only state variable in the contract
     var storage: ContractStorage
+
+    // utility variable for invariant
+    // the set of addresses that have sent transfers
+    var transferSenders: Set[Addr]
+
 
     // a helper function for the instantiate action
     pure def instantiate_helper(
@@ -150,7 +155,8 @@ module ibc_transfer {
         val instantiateResult = instantiate_helper(emptyStorage, msgInfo, GetInstantiateMsg)
         all {
             storage' = instantiateResult._2,
-            instantiateResult._1.tag == "ok"
+            instantiateResult._1.tag == "ok",
+            transferSenders' = Set()
         }
 
     // deterministic version of send
@@ -173,7 +179,8 @@ module ibc_transfer {
         val sendResult = execute_send_helper(msgInfo, getEnv, msg, storage)
         all {
             storage' = sendResult._2,
-            sendResult._1.tag == "ok"
+            sendResult._1.tag == "ok",
+            transferSenders' = transferSenders.union(Set(sender))
         }
 
     // the send action which nondeterministically picks
@@ -193,7 +200,8 @@ module ibc_transfer {
         val replyResult = reply_helper(getEnv, replyMsg, storage)
         all {
             storage' = replyResult._2,
-            replyResult._1.tag == "ok"
+            replyResult._1.tag == "ok",
+            transferSenders' = transferSenders
         }
 
     // Reply to a message with a given id.
@@ -205,4 +213,10 @@ module ibc_transfer {
         send,
         reply
     }
+
+    // -- INVARIANTS
+
+    // all senders of successful transfers are in the set of transfer senders
+    val successfulTransfersWereSent = 
+            storage.successfulTransfers.subseteq(transferSenders)
 }
