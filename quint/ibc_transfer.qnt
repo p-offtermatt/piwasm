@@ -21,18 +21,18 @@ module ibc_transfer {
     // MODEL PARAMETERS
 
     // the address space
-    pure val addresses = Set("alice", "bob", "charlie")
+    pure val addresses: Set[Addr] = Set("alice", "bob", "charlie")
 
     // the possible token denoms
-    pure val tokens = Set("untrn", "uatom", "osmo")
+    pure val tokens: Set[Denom] = Set("untrn", "uatom", "osmo")
 
     // the address of this contract
-    pure val contractAddress = "ibc_transfer"
+    pure val contractAddress: Addr = "ibc_transfer"
 
     // the name of the contract
-    pure val CONTRACT_NAME = "ibc_transfer"
+    pure val CONTRACT_NAME: string = "ibc_transfer"
     // the version of the contract
-    pure val CONTRACT_VERSION_STR = "0.1.0"
+    pure val CONTRACT_VERSION_STR: string = "0.1.0"
 
     // the default environment
     pure def getEnv(): Env = {

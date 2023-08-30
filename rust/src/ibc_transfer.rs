@@ -1,19 +1,50 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use crate::msg::*;
 use crate::neutron_stdlib::*;
 use crate::quint_stdlib::*;
 use crate::wasm_stdlib::*;
 
 pub struct ContractStorage {
-    pub contract_version: ContractVersion,
-    pub reply_queue: std::collections::HashMap<i32, String>,
-    pub running_id: i32,
-    pub successful_transfers: std::collections::HashSet<String>,
+    pub contractVersion: ContractVersion,
+    pub replyQueue: HashMap<i64, String>,
+    pub runningId: i64,
+    pub successfulTransfers: HashSet<String>,
+}
+
+pub fn addresses() -> HashSet<Addr> {
+    let mut addrs = HashSet::new();
+    addrs.insert("alice".to_string());
+    addrs.insert("bob".to_string());
+    addrs.insert("charlie".to_string());
+    addrs
+}
+
+pub fn tokens() -> HashSet<Denom> {
+    let mut denoms = HashSet::new();
+    denoms.insert("untrn".to_string());
+    denoms.insert("uatom".to_string());
+    denoms.insert("osmo".to_string());
+    denoms
+}
+
+pub fn contractAddress() -> Addr {
+    "ibc_transfer".to_string()
 }
 
 pub const CONTRACT_NAME: &str = "ibc_transfer";
 pub const CONTRACT_VERSION_STR: &str = "0.1.0";
 
-pub fn instantiate(
+pub fn getEnv() -> Env {
+    Env {
+        contract: ContractInfo {
+            address: contractAddress(),
+        },
+    }
+}
+
+pub fn instantiate_helper(
     mut cur_storage: ContractStorage,
     msg_info: MsgInfo,
     msg: InstantiateMsg,
@@ -21,14 +52,14 @@ pub fn instantiate(
     let result = Result {
         data: "instantiated".to_string(),
     };
-    cur_storage.contract_version = ContractVersion {
+    cur_storage.contractVersion = ContractVersion {
         contract: CONTRACT_NAME.to_string(),
         version: CONTRACT_VERSION_STR.to_string(),
     };
     (Ok(result), cur_storage)
 }
 
-pub fn execute_send(
+pub fn execute_send_helper(
     msgInfo: MsgInfo,
     env: Env,
     msg: ExecuteMsg_Send,
@@ -51,9 +82,9 @@ pub fn execute_send(
         memo: "".to_string(),
         fee: get_min_fee(),
     };
-    curStorage.running_id += 1;
-    let new_id = curStorage.running_id;
-    curStorage.reply_queue.insert(new_id, sender.clone());
+    curStorage.runningId += 1;
+    let new_id = curStorage.runningId;
+    curStorage.replyQueue.insert(new_id, sender.clone());
     let neutron_result = NeutronResult::Ok {
         messages: vec![SubMsg_IbcTransfer {
             id: new_id,
@@ -64,17 +95,26 @@ pub fn execute_send(
     (neutron_result, curStorage)
 }
 
-pub fn reply(
+pub fn reply_helper(
     env: Env,
     msg: Reply,
     mut curStorage: ContractStorage,
 ) -> (StdResult, ContractStorage) {
-    let id = msg.id;
-    let reply_to = curStorage.reply_queue.get(&id).unwrap().clone();
-    curStorage.reply_queue.remove(&id);
-    curStorage.successful_transfers.insert(reply_to);
-    let result = Result {
-        data: "got reply to successful transfer".to_string(),
-    };
-    (Ok(result), curStorage)
+    if !curStorage.replyQueue.contains_key(&msg.id) {
+        let error = Error {
+            msg: "got reply to unknown transfer".to_string(),
+        };
+
+        (Err(error), curStorage)
+    } else {
+        let replyTo = curStorage.replyQueue.get(&msg.id).unwrap().clone();
+        curStorage.replyQueue = mapRemove(&curStorage.replyQueue, &msg.id);
+        curStorage.successfulTransfers.insert(replyTo);
+
+        let result = Result {
+            data: "got reply to successful transfer".to_string(),
+        };
+
+        (Ok(result), curStorage)
+    }
 }

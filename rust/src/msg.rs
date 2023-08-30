@@ -12,6 +12,6 @@ pub struct ExecuteMsg_Send {
     pub channel: String,
     pub to: String,
     pub denom: String,
-    pub amount: u128,
-    pub timeout_height: u64,
+    pub amount: i64,
+    pub timeout_height: i64,
 }

@@ -1,8 +1,9 @@
 pub type Addr = String;
+pub type Denom = String;
 
 pub struct Coin {
-    pub denom: String,
-    pub amount: u128,
+    pub denom: Denom,
+    pub amount: i64,
 }
 
 pub struct MsgInfo {
@@ -36,29 +37,6 @@ pub fn Err(error: Error) -> StdResult {
     StdResult::Err(error)
 }
 
-pub fn set_contract_version_deterministic(
-    name: String,
-    version: String,
-    will_error: bool,
-) -> StdResult {
-    if will_error {
-        let err = Error {
-            msg: "deserialization error".to_owned(),
-        };
-        Err(err)
-    } else {
-        let res = Result {
-            data: "data".to_owned(),
-        };
-        Ok(res)
-    }
-}
-
-pub fn set_contract_version(name: String, version: String) -> StdResult {
-    let err = rand::random();
-    set_contract_version_deterministic(name, version, err)
-}
-
 pub struct ContractInfo {
     pub address: Addr,
 }
@@ -68,6 +46,6 @@ pub struct Env {
 }
 
 pub struct Reply {
-    pub id: i32,
+    pub id: i64,
     pub result: StdResult,
 }

@@ -9,8 +9,8 @@ pub struct IbcFee {
 }
 
 pub struct RequestPacketTimeoutHeight {
-    pub revision_number: i32,
-    pub revision_height: i32,
+    pub revision_number: i64,
+    pub revision_height: i64,
 }
 
 pub struct NeutronMsg_IbcTransfer {
@@ -19,14 +19,14 @@ pub struct NeutronMsg_IbcTransfer {
     pub token: Coin,
     pub sender: String,
     pub receiver: String,
-    pub timeout_height: u64, // RequestPacketTimeoutHeight,
-    pub timeout_timestamp: u64,
+    pub timeout_height: i64, // RequestPacketTimeoutHeight,
+    pub timeout_timestamp: i64,
     pub memo: String,
     pub fee: IbcFee,
 }
 
 pub struct SubMsg_IbcTransfer {
-    pub id: i32,
+    pub id: i64,
     pub msg: NeutronMsg_IbcTransfer,
     pub reply_on: String,
 }
