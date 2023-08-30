@@ -1,4 +1,4 @@
-use crate::wasm_stdlib::*;
+use super::wasm_stdlib::*;
 
 use std::vec::Vec;
 
@@ -17,8 +17,8 @@ pub struct NeutronMsg_IbcTransfer {
     pub source_port: String,
     pub source_channel: String,
     pub token: Coin,
-    pub sender: String,
-    pub receiver: String,
+    pub sender: Addr,
+    pub receiver: Addr,
     pub timeout_height: i64, // RequestPacketTimeoutHeight,
     pub timeout_timestamp: i64,
     pub memo: String,

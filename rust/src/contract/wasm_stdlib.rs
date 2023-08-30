@@ -1,4 +1,6 @@
-pub type Addr = String;
+use serde::{Deserialize, Serialize};
+
+pub type Addr = cosmwasm_std::Addr;
 pub type Denom = String;
 
 pub struct Coin {
@@ -6,11 +8,14 @@ pub struct Coin {
     pub amount: i64,
 }
 
-pub struct MsgInfo {
-    pub sender: Addr,
-    pub funds: Vec<Coin>,
-}
+pub type MsgInfo = cosmwasm_std::MessageInfo;
 
+// pub struct MsgInfo {
+//     pub sender: Addr,
+//     pub funds: Vec<Coin>,
+// }
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ContractVersion {
     pub contract: String,
     pub version: String,
@@ -37,13 +42,15 @@ pub fn Err(error: Error) -> StdResult {
     StdResult::Err(error)
 }
 
-pub struct ContractInfo {
-    pub address: Addr,
-}
+pub type ContractInfo = cosmwasm_std::ContractInfo;
+// pub struct ContractInfo {
+//     pub address: Addr,
+// }
 
-pub struct Env {
-    pub contract: ContractInfo,
-}
+pub type Env = cosmwasm_std::Env;
+// pub struct Env {
+//     pub contract: ContractInfo,
+// }
 
 pub struct Reply {
     pub id: i64,

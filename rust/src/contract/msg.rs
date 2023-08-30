@@ -1,3 +1,5 @@
+use super::wasm_stdlib::Addr;
+
 pub struct InstantiateMsg {
     pub data: String,
 }
@@ -10,7 +12,7 @@ pub fn GetInstantiateMsg() -> InstantiateMsg {
 
 pub struct ExecuteMsg_Send {
     pub channel: String,
-    pub to: String,
+    pub to: Addr,
     pub denom: String,
     pub amount: i64,
     pub timeout_height: i64,

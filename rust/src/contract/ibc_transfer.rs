@@ -1,23 +1,26 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::msg::*;
-use crate::neutron_stdlib::*;
-use crate::quint_stdlib::*;
-use crate::wasm_stdlib::*;
+use serde::{Deserialize, Serialize};
 
+use super::msg::*;
+use super::neutron_stdlib::*;
+use super::quint_stdlib::*;
+use super::wasm_stdlib::*;
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ContractStorage {
     pub contractVersion: ContractVersion,
-    pub replyQueue: HashMap<i64, String>,
+    pub replyQueue: HashMap<i64, Addr>,
     pub runningId: i64,
-    pub successfulTransfers: HashSet<String>,
+    pub successfulTransfers: HashSet<Addr>,
 }
 
 pub fn addresses() -> HashSet<Addr> {
     let mut addrs = HashSet::new();
-    addrs.insert("alice".to_string());
-    addrs.insert("bob".to_string());
-    addrs.insert("charlie".to_string());
+    addrs.insert(Addr::unchecked("alice"));
+    addrs.insert(Addr::unchecked("bob"));
+    addrs.insert(Addr::unchecked("charlie"));
     addrs
 }
 
@@ -30,19 +33,20 @@ pub fn tokens() -> HashSet<Denom> {
 }
 
 pub fn contractAddress() -> Addr {
-    "ibc_transfer".to_string()
+    Addr::unchecked("ibc_transfer")
 }
 
 pub const CONTRACT_NAME: &str = "ibc_transfer";
 pub const CONTRACT_VERSION_STR: &str = "0.1.0";
 
-pub fn getEnv() -> Env {
-    Env {
-        contract: ContractInfo {
-            address: contractAddress(),
-        },
-    }
-}
+// pub fn getEnv() -> Env {
+//     Env {
+//         contract: ContractInfo {
+//             address: contractAddress(),
+//         },
+//         ..Default::default()
+//     }
+// }
 
 pub fn instantiate_helper(
     mut cur_storage: ContractStorage,
