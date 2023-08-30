@@ -86,12 +86,11 @@ module ibc_transfer {
                 msg: transferMessage,
                 replyOn: "always"
             }),
-            error: {msg: "noerror"}
         }
         (neutronResult, s2)
     }
 
-    pure def reply(env: Env, msg: Reply, curStorage: ContractStorage): StdResult = {
+    pure def reply(env: Env, msg: Reply, curStorage: ContractStorage): (StdResult, ContractStorage) = {
         val id = msg.id
         val replyTo = curStorage.replyQueue.get(id)
         // remove the id from the reply queue
@@ -99,7 +98,7 @@ module ibc_transfer {
         // add address to the successful transfers
         val s2 = s1.with("successfulTransfers", s1.successfulTransfers.union(Set(replyTo)))
         val result = {data: "got reply to successful transfer"}
-        Ok(result)
+        (Ok(result), curStorage)
     }
 
     action init: bool =

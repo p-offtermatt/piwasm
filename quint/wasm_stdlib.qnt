@@ -26,20 +26,18 @@ module wasm_stdlib {
         data: str
     }
 
-    // tag is either "ok" or "error".
-    // workaround for missing sum types in Quint
-    type StdResult = { tag: str, error: Error, res: Result }
+    type StdResult = 
+        | { tag: 'ok', res: Result }
+        | { tag: 'err', error: Error }
 
     pure def Ok(res: Result): StdResult = {
         tag: "ok",
         res: res,
-        error: {msg: "no error"}
     }
 
     pure def Err(error: Error): StdResult = {
-        tag: "error",
+        tag: "err",
         error: error,
-        res: {data: "error"}
     }
 
     pure def set_contract_version_deterministic(name: str, version: str, willError: bool): StdResult = 
