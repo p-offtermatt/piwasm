@@ -3,6 +3,22 @@
 This is a repo for the quintwasm project, done as part of PI week.
 Find some background reading in the background folder.
 
+## Usage
+
+To load the model into REPL:
+    
+    ```
+    cd quint
+    quint -r ibc_transfer.qnt::ibc_transfer
+    ```
+
+To check the invariant:
+
+```
+quint run --invariant successfulTransfersWereSent ibc_transfer.qnt --max-samples=200
+```
+
+
 ## Problems
 
 * No sum types - makes options annoying, but is manageable with workarounds
