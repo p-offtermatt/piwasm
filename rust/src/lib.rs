@@ -6,7 +6,7 @@ use contract::{
 };
 
 use cosmwasm_std::{
-    entry_point, DepsMut, Env, MessageInfo, Response, StdError, StdResult, Storage,
+    entry_point, DepsMut, Env, MessageInfo, Reply, Response, StdError, StdResult, Storage,
 };
 use neutron_sdk::bindings::msg::NeutronMsg;
 use serde::{de::DeserializeOwned, Serialize};
@@ -59,6 +59,17 @@ pub fn execute_send(
         response = response.add_submessage(message);
     }
     Ok(response)
+}
+
+#[entry_point]
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> StdResult<Response> {
+    let initial_storage = load::<ContractStorage>(deps.storage, STORAGE_KEY)?;
+    let (result, storage) = contract::ibc_transfer::reply_helper(env, msg.into(), initial_storage);
+    let result = StdResult::from(result)?;
+
+    save(deps.storage, STORAGE_KEY, &storage)?;
+
+    Ok(Response::new().add_attribute("result", result.data))
 }
 
 fn save<T: Serialize>(storage: &mut dyn Storage, key: &[u8], value: &T) -> StdResult<()> {

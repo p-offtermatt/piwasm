@@ -60,3 +60,14 @@ pub struct Reply {
     pub id: u64,
     pub result: StdResult,
 }
+
+impl From<cosmwasm_std::Reply> for Reply {
+    fn from(value: cosmwasm_std::Reply) -> Self {
+        Reply {
+            id: value.id,
+            result: StdResult::Ok(Result {
+                data: "TODO".to_string(),
+            }),
+        }
+    }
+}
