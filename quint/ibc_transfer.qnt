@@ -12,33 +12,8 @@
 // The reply action is triggered when the contract receives a reply for a transfer message.
 // It will add the sender of the transfer message to the set of successful transfers.
 
-module ibc_transfer {
-    import msg.* from "./msg"
+module ibc_transfer_utils {
     import wasm_stdlib.* from "./wasm_stdlib"
-    import neutron_stdlib.* from "./neutron_stdlib"
-    import quint_stdlib.* from "./quint_stdlib"
-
-    // MODEL PARAMETERS
-
-    // the address space
-    pure val addresses: Set[Addr] = Set("alice", "bob", "charlie")
-
-    // the possible token denoms
-    pure val tokens: Set[Denom] = Set("untrn", "uatom", "osmo")
-
-    // the address of this contract
-    pure val contractAddress: Addr = "ibc_transfer"
-
-    // the name of the contract
-    pure val CONTRACT_NAME: str = "ibc_transfer"
-    // the version of the contract
-    pure val CONTRACT_VERSION_STR: str = "0.1.0"
-
-    // the default environment
-    pure def getEnv(): Env = {
-        {contract: {address: contractAddress}}
-    }
-
     // this is the stuff the contract actually stores in the blockchain
     type ContractStorage = {
         // stores the version of the contract
@@ -53,16 +28,20 @@ module ibc_transfer {
         successfulTransfers: Set[Addr]
     }
 
-    // the contract storage - the only state variable in the contract
-    var storage: ContractStorage
+    // the name of the contract
+    pure val CONTRACT_NAME: str = "ibc_transfer"
+    // the version of the contract
+    pure val CONTRACT_VERSION_STR: str = "0.1.0"
+}
 
-    // utility variable for invariant
-    // the set of addresses that have sent transfers
-    var transferSenders: Set[Addr]
+module ibc_transfer_entrypoints {
+    import msg.* from "./msg"
+    import wasm_stdlib.* from "./wasm_stdlib"
+    import neutron_stdlib.* from "./neutron_stdlib"
+    import quint_stdlib.* from "./quint_stdlib"
+    import ibc_transfer_utils.*
 
-
-    // a helper function for the instantiate action
-    pure def instantiate_helper(
+    pure def instantiate(
         curStorage: ContractStorage,
         msgInfo: MsgInfo,
         msg: InstantiateMsg
@@ -73,8 +52,7 @@ module ibc_transfer {
             {contract: CONTRACT_NAME, version: CONTRACT_VERSION_STR}))
     }
 
-    // a helper function for the send action
-    pure def execute_send_helper(
+    pure def execute_send(
         msgInfo: MsgInfo,
         env: Env,
         msg: ExecuteMsg_Send,
@@ -119,8 +97,7 @@ module ibc_transfer {
         (neutronResult, s2)
     }
 
-    // a helper function for the reply action
-    pure def reply_helper(env: Env, msg: Reply, curStorage: ContractStorage): (StdResult, ContractStorage) = {
+    pure def reply(env: Env, msg: Reply, curStorage: ContractStorage): (StdResult, ContractStorage) = {
         if (not(curStorage.replyQueue.keys().contains(msg.id))) {
             val error = {msg: "got reply to unknown transfer"}
             (Err(error), curStorage)
@@ -133,6 +110,34 @@ module ibc_transfer {
             val result = {data: "got reply to successful transfer"}
             (Ok(result), s2)
         }
+    }
+}
+
+
+module ibc_transfer_test {
+    import ibc_transfer_entrypoints.*
+    import ibc_transfer_utils.*
+    import wasm_stdlib.* from "./wasm_stdlib"
+    import msg.* from "./msg"
+
+    var storage: ContractStorage
+
+    // utility variable for invariant
+    // the set of addresses that have sent transfers
+    var transferSenders: Set[Addr]
+
+    // the address space
+    pure val addresses: Set[Addr] = Set("alice", "bob", "charlie")
+
+    // the possible token denoms
+    pure val tokens: Set[Denom] = Set("untrn", "uatom", "osmo")
+
+    // the address of this contract
+    pure val contractAddress: Addr = "ibc_transfer"
+
+    // the default environment
+    pure def getEnv(): Env = {
+        {contract: {address: contractAddress}}
     }
 
     // init instantiates the contract
@@ -152,7 +157,7 @@ module ibc_transfer {
         })
         val msgInfo = {sender: "alice",
                        funds: funds}
-        val instantiateResult = instantiate_helper(emptyStorage, msgInfo, GetInstantiateMsg)
+        val instantiateResult = instantiate(emptyStorage, msgInfo, GetInstantiateMsg)
         all {
             storage' = instantiateResult._2,
             instantiateResult._1.tag == "ok",
@@ -176,7 +181,7 @@ module ibc_transfer {
                    amount: amount,
                    channel: channel,
                    timeout_height: timeout_height}
-        val sendResult = execute_send_helper(msgInfo, getEnv, msg, storage)
+        val sendResult = execute_send(msgInfo, getEnv, msg, storage)
         all {
             storage' = sendResult._2,
             sendResult._1.tag == "ok",
@@ -197,7 +202,7 @@ module ibc_transfer {
     // deterministic version of reply
     action reply_deterministic(id: int): bool =
         val replyMsg = {id: id, result: Ok({data: "success"})}
-        val replyResult = reply_helper(getEnv, replyMsg, storage)
+        val replyResult = reply(getEnv, replyMsg, storage)
         all {
             storage' = replyResult._2,
             replyResult._1.tag == "ok",
@@ -205,13 +210,13 @@ module ibc_transfer {
         }
 
     // Reply to a message with a given id.
-    action reply: bool =
+    action reply_action: bool =
         nondet id = oneOf(storage.replyQueue.keys())
         reply_deterministic(id)
 
     action step: bool = any {
         send,
-        reply
+        reply_action
     }
 
     // -- INVARIANTS
