@@ -33,8 +33,8 @@ module wasm_stdlib {
     }
 
     type StdResult = 
-        | { tag: 'ok', res: Result }
-        | { tag: 'err', error: Error }
+        | { tag: "ok", res: Result }
+        | { tag: "err", error: Error }
 
     pure def Ok(res: Result): StdResult = {
         tag: "ok",

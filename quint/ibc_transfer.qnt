@@ -30,9 +30,9 @@ module ibc_transfer {
     pure val contractAddress: Addr = "ibc_transfer"
 
     // the name of the contract
-    pure val CONTRACT_NAME: string = "ibc_transfer"
+    pure val CONTRACT_NAME: str = "ibc_transfer"
     // the version of the contract
-    pure val CONTRACT_VERSION_STR: string = "0.1.0"
+    pure val CONTRACT_VERSION_STR: str = "0.1.0"
 
     // the default environment
     pure def getEnv(): Env = {
