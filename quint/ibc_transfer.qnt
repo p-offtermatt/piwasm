@@ -114,6 +114,7 @@ module ibc_transfer {
                 msg: transferMessage,
                 replyOn: "always"
             }),
+            error: "no error"
         }
         (neutronResult, s2)
     }

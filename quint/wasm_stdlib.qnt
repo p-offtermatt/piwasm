@@ -32,17 +32,17 @@ module wasm_stdlib {
         data: str
     }
 
-    type StdResult = 
-        | { tag: "ok", res: Result }
-        | { tag: "err", error: Error }
+    type StdResult = { tag: str, res: Result, error: Error }
 
     pure def Ok(res: Result): StdResult = {
         tag: "ok",
         res: res,
+        error: {msg: "no msg, since there is no error"}
     }
 
     pure def Err(error: Error): StdResult = {
         tag: "err",
+        res: {data: "no data, since there is an error"},
         error: error,
     }
 

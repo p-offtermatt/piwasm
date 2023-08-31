@@ -44,9 +44,7 @@ module neutron_stdlib {
     }
 
     // tag should be either "ok" or "error"
-    type NeutronResult =
-        | { tag: "ok", messages: List[SubMsg_IbcTransfer] }
-        | { tag: "error", error: str }
+    type NeutronResult = { tag: str, messages: List[SubMsg_IbcTransfer], error: str }
 
     // models the min_ntrn_ibc_fee and query_min_ibc_fee functions
     pure def get_min_fee(): IbcFee = 
