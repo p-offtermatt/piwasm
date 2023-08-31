@@ -37,13 +37,13 @@ impl From<NeutronMsg_IbcTransfer> for NeutronMsg {
         NeutronMsg::IbcTransfer {
             source_port: msg.source_port,
             source_channel: msg.source_channel,
-            token: msg.token.into(),
+            token: msg.token,
             sender: msg.sender.to_string(),
             receiver: msg.receiver.to_string(),
-            timeout_height: msg.timeout_height.into(),
+            timeout_height: msg.timeout_height,
             timeout_timestamp: msg.timeout_timestamp,
             memo: msg.memo,
-            fee: msg.fee.into(),
+            fee: msg.fee,
         }
     }
 }
