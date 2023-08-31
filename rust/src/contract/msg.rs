@@ -1,19 +1,19 @@
-use super::wasm_stdlib::Addr;
+use cosmwasm_std::Uint128;
+
+use super::{neutron_stdlib::RequestPacketTimeoutHeight, wasm_stdlib::Addr};
 
 pub struct InstantiateMsg {
     pub data: String,
 }
 
-pub fn GetInstantiateMsg() -> InstantiateMsg {
-    InstantiateMsg {
-        data: "Hello, world!".to_string(),
-    }
+pub enum ExecuteMsg {
+    Send(ExecuteMsg_Send),
 }
 
 pub struct ExecuteMsg_Send {
     pub channel: String,
     pub to: Addr,
     pub denom: String,
-    pub amount: i64,
-    pub timeout_height: i64,
+    pub amount: Uint128,
+    pub timeout_height: RequestPacketTimeoutHeight,
 }
