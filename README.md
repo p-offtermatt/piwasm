@@ -28,7 +28,7 @@ To run the parser, run:
 
 ```
 cd parser
-go run . ../quint/ibc_transfer_types.json
+go run . ../quint/ibc_transfer_types.json ../rust/src/contract/ibc_transfer.rs
 ```
 
 ## Problems
