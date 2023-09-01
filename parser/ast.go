@@ -1,7 +1,14 @@
 package main
 
+type AST interface {
+	PrettyPrint(level int) string
+}
+
+// Types
 type (
-	Type     interface{}
+	Type interface {
+		AST
+	}
 	TypeCons struct {
 		Type
 		Name   string
@@ -9,55 +16,67 @@ type (
 	}
 )
 
-type StructType struct {
-	Type
-	Fields []Field
-}
+type (
+	StructType struct {
+		Type
+		Fields []Field
+	}
 
-type UInt64Type struct {
-	Type
-}
-type StringType struct {
-	Type
-}
-type BoolType struct {
-	Type
-}
-type TupleType struct {
-	Type
-	Types []Type
-}
-type StrType struct {
-	Type
-}
-type ListType struct {
-	Type
-	ElementType Type
-}
-type SetType struct {
-	Type
-	ElementType Type
-}
-type FunType struct {
-	Type
-	ArgType    Type
-	ReturnType Type
-}
-type TypeRef struct {
-	Type
-	TypeName string
-	Mutable  bool
-}
+	UInt64Type struct {
+		Type
+	}
+	StringType struct {
+		Type
+	}
+	BoolType struct {
+		Type
+	}
+	TupleType struct {
+		Type
+		Types []Type
+	}
+	StrType struct {
+		Type
+	}
+	ListType struct {
+		Type
+		ElementType Type
+	}
+	SetType struct {
+		Type
+		ElementType Type
+	}
+	// a reference to a custom type that is already defined
+	ConstType struct {
+		Type
+		Name string
+	}
+	MapType struct {
+		Type
+		ArgType    Type
+		ReturnType Type
+	}
+	TypeRef struct {
+		Type
+		OfType  Type
+		Mutable bool
+	}
+)
+
 type Import struct {
+	AST
 	Path string
 }
 type Program struct {
-	Imports   []Import
-	Structs   []StructDecl
-	Functions []FunctionDecl
+	AST
+
+	Imports []Import
+	Decls   []Decl
 }
 type (
-	Decl       interface{}
+	Decl interface {
+		AST
+	}
 	StructDecl struct {
 		Decl
 		Name   string
@@ -68,21 +87,23 @@ type (
 		Name       string
 		Params     []Param
 		ReturnType Type
-		Body       Block
+		Body       []Stmt
 	}
 
 	// declares a global constant
 	ConstDecl struct {
 		Decl
 		Name  string
+		Type  Type
 		Value Block
 	}
-)
 
-type TypeDef struct {
-	Name string
-	Type Type
-}
+	TypeDecl struct {
+		Decl
+		Name string
+		Type Type
+	}
+)
 
 type Field struct {
 	Name string
@@ -93,9 +114,13 @@ type Param struct {
 	Type    Type
 	Mutable bool
 }
+
+// Statements
 type (
-	Stmt interface{}
-	Let  struct {
+	Stmt interface {
+		AST
+	}
+	Let struct {
 		Stmt
 		VariableName string
 		Value        Expr
@@ -111,8 +136,12 @@ type Return struct {
 	Stmt
 	Value Expr
 }
+
+// Expressions
 type (
-	Expr  interface{}
+	Expr interface {
+		AST
+	}
 	Block struct {
 		Expr
 		Statements []Stmt
@@ -120,6 +149,7 @@ type (
 )
 
 type FieldValue struct {
+	AST
 	Name  string
 	Value Expr
 }

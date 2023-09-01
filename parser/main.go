@@ -6,8 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func resolveType(typeField map[string]interface{}) Type {
@@ -21,27 +19,27 @@ func resolveType(typeField map[string]interface{}) Type {
 			fieldType := resolveType(fieldMap["fieldType"].(map[string]interface{}))
 			fields = append(fields, Field{fieldMap["fieldName"].(string), fieldType})
 		}
-		return StructType{Fields: fields}
+		return &StructType{Fields: fields}
 	case "str":
-		return StrType{}
+		return &StrType{}
 	case "const":
 		// the type is just referenced here by an id and name.
 		typeName := typeField["name"].(string)
-		return TypeRef{TypeName: typeName, Mutable: false}
+		return &ConstType{Name: typeName}
 	case "list":
 		elementType := resolveType(typeField["elem"].(map[string]interface{}))
-		return ListType{ElementType: elementType}
+		return &ListType{ElementType: elementType}
 	case "int":
-		return UInt64Type{}
+		return &UInt64Type{}
 	case "set":
 		elementType := resolveType(typeField["elem"].(map[string]interface{}))
-		return SetType{ElementType: elementType}
+		return &SetType{ElementType: elementType}
 	case "fun":
 		argType := resolveType(typeField["arg"].(map[string]interface{}))
 		returnType := resolveType(typeField["res"].(map[string]interface{}))
-		return FunType{ArgType: argType, ReturnType: returnType}
+		return &MapType{ArgType: argType, ReturnType: returnType}
 	case "bool":
-		return BoolType{}
+		return &BoolType{}
 	case "tup":
 		var types []Type
 		fieldsMap := typeField["fields"].(map[string]interface{})["fields"].([]interface{})
@@ -50,7 +48,7 @@ func resolveType(typeField map[string]interface{}) Type {
 			fieldType := resolveType(fieldMap["fieldType"].(map[string]interface{}))
 			types = append(types, fieldType)
 		}
-		return TupleType{Types: types}
+		return &TupleType{Types: types}
 	default:
 		panic("kind not supported for resolving types: " + typeField["kind"].(string))
 	}
@@ -62,7 +60,8 @@ func resolveDef(defField map[string]interface{}) Decl {
 	case "pureval":
 		name := defField["name"].(string)
 		block := resolveExpr(defField["expr"].(map[string]interface{}))
-		return ConstDecl{Name: name, Value: block}
+		valType := resolveType(defField["typeAnnotation"].(map[string]interface{}))
+		return &ConstDecl{Name: name, Type: valType, Value: block}
 	case "puredef":
 		// ====extract parameters====
 		var paramNames []string
@@ -103,7 +102,7 @@ func resolveDef(defField map[string]interface{}) Decl {
 		// ====extract the expression from expr=====
 		statements := resolveExpr(defField["expr"].(map[string]interface{}))
 
-		return FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements}
+		return &FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements.Statements}
 	default:
 		fmt.Println("qualifier not supported for resolving defs: " + defField["qualifier"].(string))
 	}
@@ -115,9 +114,9 @@ func resolveExpr(exprField map[string]interface{}) Block {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Please provide a file path as an argument.")
-		return
+	if len(os.Args) < 3 {
+		fmt.Fprintf(os.Stderr, "Usage: %s <input file path> <output file path>\n", os.Args[0])
+		os.Exit(1)
 	}
 
 	// read the file from the first argument
@@ -127,6 +126,8 @@ func main() {
 		fmt.Println("Error reading file:", err)
 		return
 	}
+
+	outputFilePath := os.Args[2]
 
 	// read the whole file into a map
 	var data map[string]interface{}
@@ -160,6 +161,8 @@ func main() {
 	// 	fmt.Println(key, value)
 	// }
 
+	var declarations []Decl
+
 	// go through the modules
 	for _, module := range data["modules"].([]interface{}) {
 		// ignore modules ending in _stdlib or _test
@@ -168,27 +171,55 @@ func main() {
 			continue
 		}
 
-		var declarations []interface{}
-
 		// collect all declarations
 		for _, decl := range moduleMap["declarations"].([]interface{}) {
 			declMap := decl.(map[string]interface{})
 			switch declMap["kind"] {
 			case "typedef":
+				var declaration Decl
 				name := declMap["name"].(string)
 				declType := resolveType(declMap["type"].(map[string]interface{}))
-				typeDef := TypeDef{name, declType}
-				declarations = append(declarations, typeDef)
+
+				// if the type is a StructType, this should be a struct decl, otherwise a type decl
+				if _, ok := declType.(*StructType); ok {
+					structType := declType.(*StructType)
+
+					// this is a struct decl
+					declaration = &StructDecl{Name: name, Fields: structType.Fields}
+				} else {
+					// this is a type decl
+					declaration = &TypeDecl{Name: name, Type: declType}
+				}
+				declarations = append(declarations, declaration)
 				// fmt.Println(typeDef)
 			case "import":
 				// ignore imports
 			case "def":
-				resolveDef(declMap)
+				declarations = append(declarations, resolveDef(declMap))
 			default:
 				fmt.Println("kind not supported: " + declMap["kind"].(string))
 			}
 		}
-
-		spew.Dump(declarations)
 	}
+
+	// hard code some dependencies we might need. rust can just ignore what we do not need
+	imports := []Import{
+		{Path: "std::collections::HashMap"},
+		{Path: "std::collections::HashSet"},
+		{Path: "super::neutron_stdlib::*"},
+		{Path: "super::wasm_stdlib::*"},
+	}
+
+	program := Program{
+		Imports: imports,
+		Decls:   declarations,
+	}
+
+	err = os.WriteFile(outputFilePath, []byte(program.PrettyPrint(0)), 0o644)
+	if err != nil {
+		fmt.Println("Error writing file:", err)
+		return
+	}
+
+	fmt.Println("Wrote output to ", outputFilePath)
 }

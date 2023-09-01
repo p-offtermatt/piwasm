@@ -1,123 +1,44 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-
-use serde::{Deserialize, Serialize};
-
-use super::msg::*;
 use super::neutron_stdlib::*;
-use super::quint_stdlib::*;
 use super::wasm_stdlib::*;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ContractStorage {
-    pub contractVersion: ContractVersion,
-    pub replyQueue: HashMap<u64, Addr>,
-    pub runningId: u64,
-    pub successfulTransfers: HashSet<Addr>,
+struct InstantiateMsg {
+    data: String,
 }
 
-pub fn addresses() -> HashSet<Addr> {
-    let mut addrs = HashSet::new();
-    addrs.insert(Addr::unchecked("alice"));
-    addrs.insert(Addr::unchecked("bob"));
-    addrs.insert(Addr::unchecked("charlie"));
-    addrs
+struct ExecuteMsg_Send {
+    channel: String,
+    to: String,
+    denom: String,
+    amount: u64,
+    timeout_height: u64,
 }
 
-pub fn tokens() -> HashSet<Denom> {
-    let mut denoms = HashSet::new();
-    denoms.insert("untrn".to_string());
-    denoms.insert("uatom".to_string());
-    denoms.insert("osmo".to_string());
-    denoms
+fn GetInstantiateMsg() -> InstantiateMsg {
 }
 
-pub fn contractAddress() -> Addr {
-    Addr::unchecked("ibc_transfer")
+pub const CONTRACT_NAME: String = {
+}
+;
+
+pub const CONTRACT_VERSION_STR: String = {
+}
+;
+
+struct ContractStorage {
+    contractVersion: ContractVersion,
+    replyQueue: HashMap::<u64, String>,
+    runningId: u64,
+    successfulTransfers: HashSet::<Addr>,
 }
 
-pub const CONTRACT_NAME: &str = "ibc_transfer";
-pub const CONTRACT_VERSION_STR: &str = "0.1.0";
-
-pub fn instantiate_helper(
-    mut cur_storage: ContractStorage,
-    _msg_info: MsgInfo,
-    _msg: InstantiateMsg,
-) -> (StdResult, ContractStorage) {
-    let result = Result {
-        data: "instantiated".to_string(),
-    };
-
-    cur_storage.contractVersion = ContractVersion {
-        contract: CONTRACT_NAME.to_string(),
-        version: CONTRACT_VERSION_STR.to_string(),
-    };
-
-    (StdResult::Ok(result), cur_storage)
+fn instantiate(curStorage: ContractStorage, msgInfo: MsgInfo, msg: InstantiateMsg) -> (StdResult, ContractStorage) {
 }
 
-pub fn execute_send_helper(
-    msgInfo: MsgInfo,
-    env: Env,
-    msg: ExecuteMsg_Send,
-    mut curStorage: ContractStorage,
-) -> (NeutronResult, ContractStorage) {
-    let sender = &msgInfo.sender;
-    let recipient = &msg.to;
-
-    let coin = Coin {
-        denom: msg.denom,
-        amount: msg.amount,
-    };
-
-    let transferMessage = NeutronMsg_IbcTransfer {
-        source_port: "transfer".to_string(),
-        source_channel: msg.channel.clone(),
-        sender: env.contract.address.clone(),
-        receiver: recipient.clone(),
-        token: coin,
-        timeout_height: msg.timeout_height,
-        timeout_timestamp: 0,
-        memo: "".to_string(),
-        fee: get_min_fee(),
-    };
-
-    curStorage.runningId += 1;
-
-    let new_id = curStorage.runningId;
-    curStorage.replyQueue.insert(new_id, sender.clone());
-
-    let neutron_result = NeutronResult::Ok {
-        messages: vec![SubMsg_IbcTransfer {
-            id: new_id,
-            msg: transferMessage,
-            reply_on: "always".to_string(),
-        }],
-    };
-
-    (neutron_result, curStorage)
+fn reply(env: Env, msg: Reply, curStorage: ContractStorage) -> (StdResult, ContractStorage) {
 }
 
-pub fn reply_helper(
-    _env: Env,
-    msg: Reply,
-    mut curStorage: ContractStorage,
-) -> (StdResult, ContractStorage) {
-    if !curStorage.replyQueue.contains_key(&msg.id) {
-        let error = Error {
-            msg: "got reply to unknown transfer".to_string(),
-        };
-
-        (StdResult::Err(error), curStorage)
-    } else {
-        let replyTo = curStorage.replyQueue.get(&msg.id).unwrap().clone();
-        curStorage.replyQueue = mapRemove(&curStorage.replyQueue, &msg.id);
-        curStorage.successfulTransfers.insert(replyTo);
-
-        let result = Result {
-            data: "got reply to successful transfer".to_string(),
-        };
-
-        (StdResult::Ok(result), curStorage)
-    }
+fn execute_send(msgInfo: MsgInfo, env: Env, msg: ExecuteMsg_Send, curStorage: ContractStorage) -> (NeutronResult, ContractStorage) {
 }
+
