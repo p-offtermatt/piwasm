@@ -6,7 +6,7 @@ import (
 )
 
 type AST interface {
-	PrettyPrint() string
+	PrettyPrint(level int) string
 }
 
 type Type interface {
@@ -20,10 +20,10 @@ type TypeCons struct {
 	Params []Type
 }
 
-func (t *TypeCons) PrettyPrint() string {
+func (t *TypeCons) PrettyPrint(level int) string {
 	types := make([]string, len(t.Params))
 	for i, typ := range t.Params {
-		types[i] = typ.PrettyPrint()
+		types[i] = typ.PrettyPrint(level)
 	}
 	return fmt.Sprintf("%s<%s>", t.Name, strings.Join(types, ", "))
 }
@@ -32,7 +32,7 @@ type UInt64Type struct {
 	Type
 }
 
-func (t *UInt64Type) PrettyPrint() string {
+func (t *UInt64Type) PrettyPrint(level int) string {
 	return "u64"
 }
 
@@ -40,7 +40,7 @@ type StringType struct {
 	Type
 }
 
-func (t *StringType) PrettyPrint() string {
+func (t *StringType) PrettyPrint(level int) string {
 	return "String"
 }
 
@@ -48,7 +48,7 @@ type BoolType struct {
 	Type
 }
 
-func (t *BoolType) PrettyPrint() string {
+func (t *BoolType) PrettyPrint(level int) string {
 	return "bool"
 }
 
@@ -58,10 +58,10 @@ type TupleType struct {
 	Types []Type
 }
 
-func (t *TupleType) PrettyPrint() string {
+func (t *TupleType) PrettyPrint(level int) string {
 	types := make([]string, len(t.Types))
 	for i, typ := range t.Types {
-		types[i] = typ.PrettyPrint()
+		types[i] = typ.PrettyPrint(level)
 	}
 	return fmt.Sprintf("(%s)", strings.Join(types, ", "))
 }
@@ -70,7 +70,7 @@ type StrType struct {
 	Type
 }
 
-func (t *StrType) PrettyPrint() string {
+func (t *StrType) PrettyPrint(level int) string {
 	return "str"
 }
 
@@ -81,12 +81,12 @@ type TypeRef struct {
 	Mutable bool
 }
 
-func (t *TypeRef) PrettyPrint() string {
+func (t *TypeRef) PrettyPrint(level int) string {
 	mut := ""
 	if t.Mutable {
 		mut = "mut "
 	}
-	return fmt.Sprintf("&%s %s", mut, t.OfType.PrettyPrint())
+	return fmt.Sprintf("&%s %s", mut, t.OfType.PrettyPrint(level))
 }
 
 type Import struct {
@@ -95,7 +95,7 @@ type Import struct {
 	Path string
 }
 
-func (i Import) PrettyPrint() string {
+func (i Import) PrettyPrint(level int) string {
 	return fmt.Sprintf("use %s;", i.Path)
 }
 
@@ -107,21 +107,21 @@ type Program struct {
 	Functions []FunctionDecl
 }
 
-func (p *Program) PrettyPrint() string {
+func (p *Program) PrettyPrint(level int) string {
 	var sb strings.Builder
 
 	for _, imp := range p.Imports {
-		sb.WriteString(imp.PrettyPrint())
+		sb.WriteString(imp.PrettyPrint(level))
 		sb.WriteString("\n")
 	}
 
 	for _, decl := range p.Structs {
-		sb.WriteString(decl.PrettyPrint())
+		sb.WriteString(decl.PrettyPrint(level))
 		sb.WriteString("\n")
 	}
 
 	for _, decl := range p.Functions {
-		sb.WriteString(decl.PrettyPrint())
+		sb.WriteString(decl.PrettyPrint(level))
 		sb.WriteString("\n")
 	}
 
@@ -139,7 +139,7 @@ type StructDecl struct {
 	Fields []Field
 }
 
-func (s *StructDecl) PrettyPrint() string {
+func (s *StructDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
 	sb.WriteString("struct ")
@@ -148,7 +148,7 @@ func (s *StructDecl) PrettyPrint() string {
 
 	for _, field := range s.Fields {
 		sb.WriteString("    ")
-		sb.WriteString(field.PrettyPrint())
+		sb.WriteString(field.PrettyPrint(level))
 		sb.WriteString(",\n")
 	}
 
@@ -164,7 +164,7 @@ type Field struct {
 	Type string
 }
 
-func (f *Field) PrettyPrint() string {
+func (f *Field) PrettyPrint(level int) string {
 	return fmt.Sprintf("%s: %s", f.Name, f.Type)
 }
 
@@ -177,7 +177,7 @@ type FunctionDecl struct {
 	Body       []Stmt
 }
 
-func (f *FunctionDecl) PrettyPrint() string {
+func (f *FunctionDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
 	sb.WriteString("fn ")
@@ -186,7 +186,7 @@ func (f *FunctionDecl) PrettyPrint() string {
 
 	params := make([]string, len(f.Params))
 	for i, param := range f.Params {
-		params[i] = param.PrettyPrint()
+		params[i] = param.PrettyPrint(level)
 	}
 	sb.WriteString(strings.Join(params, ", "))
 
@@ -195,8 +195,7 @@ func (f *FunctionDecl) PrettyPrint() string {
 	sb.WriteString(" {\n")
 
 	for _, stmt := range f.Body {
-		sb.WriteString("    ")
-		sb.WriteString(stmt.PrettyPrint())
+		sb.WriteString(stmt.PrettyPrint(level + 1))
 		sb.WriteString("\n")
 	}
 
@@ -213,7 +212,7 @@ type Param struct {
 	Mutable bool
 }
 
-func (p *Param) PrettyPrint() string {
+func (p *Param) PrettyPrint(level int) string {
 	mut := ""
 	if p.Mutable {
 		mut = "mut "
@@ -232,8 +231,9 @@ type Let struct {
 	Value        Expr
 }
 
-func (l *Let) PrettyPrint() string {
-	return fmt.Sprintf("let %s = %s;", l.VariableName, l.Value.PrettyPrint())
+func (l *Let) PrettyPrint(level int) string {
+	indent := strings.Repeat("    ", level)
+	return fmt.Sprintf("%slet %s = %s;", indent, l.VariableName, l.Value.PrettyPrint(0))
 }
 
 type Assign struct {
@@ -243,8 +243,9 @@ type Assign struct {
 	Value Expr
 }
 
-func (a *Assign) PrettyPrint() string {
-	return fmt.Sprintf("%s = %s;", a.Dest.PrettyPrint(), a.Value.PrettyPrint())
+func (a *Assign) PrettyPrint(level int) string {
+	indent := strings.Repeat("    ", level)
+	return fmt.Sprintf("%s%s = %s;", indent, a.Dest.PrettyPrint(0), a.Value.PrettyPrint(0))
 }
 
 type Return struct {
@@ -253,8 +254,9 @@ type Return struct {
 	Value Expr
 }
 
-func (r *Return) PrettyPrint() string {
-	return fmt.Sprintf("return %s;", r.Value.PrettyPrint())
+func (r *Return) PrettyPrint(level int) string {
+	indent := strings.Repeat("    ", level)
+	return fmt.Sprintf("%sreturn %s;", indent, r.Value.PrettyPrint(level))
 }
 
 type Expr interface {
@@ -267,16 +269,19 @@ type Block struct {
 	Statements []Stmt
 }
 
-func (b *Block) PrettyPrint() string {
+func (b *Block) PrettyPrint(level int) string {
 	var sb strings.Builder
 
+	indent := strings.Repeat("    ", level)
+
+	sb.WriteString(indent)
 	sb.WriteString("{\n")
 	for _, stmt := range b.Statements {
-		sb.WriteString("    ")
-		sb.WriteString(stmt.PrettyPrint())
+		sb.WriteString(stmt.PrettyPrint(level + 1))
 		sb.WriteString("\n")
 	}
-	sb.WriteString("}")
+	sb.WriteString(indent)
+	sb.WriteString("}\n")
 
 	return sb.String()
 }
@@ -288,8 +293,9 @@ type FieldValue struct {
 	Value Expr
 }
 
-func (f *FieldValue) PrettyPrint() string {
-	return fmt.Sprintf("%s: %s", f.Name, f.Value.PrettyPrint())
+func (f *FieldValue) PrettyPrint(level int) string {
+	indent := strings.Repeat("    ", level)
+	return fmt.Sprintf("%s%s: %s", indent, f.Name, f.Value.PrettyPrint(level))
 }
 
 type StructCons struct {
@@ -299,18 +305,20 @@ type StructCons struct {
 	Fields     []FieldValue
 }
 
-func (s *StructCons) PrettyPrint() string {
+func (s *StructCons) PrettyPrint(level int) string {
 	var sb strings.Builder
+
+	indent := strings.Repeat("    ", level)
 
 	sb.WriteString(s.StructName)
 	sb.WriteString(" {\n")
 
 	for _, field := range s.Fields {
-		sb.WriteString("    ")
-		sb.WriteString(field.PrettyPrint())
+		sb.WriteString(field.PrettyPrint(level + 1))
 		sb.WriteString(",\n")
 	}
 
+	sb.WriteString(indent)
 	sb.WriteString("}")
 
 	return sb.String()
@@ -324,7 +332,7 @@ type EnumCons struct {
 	Params   []Expr
 }
 
-func (e *EnumCons) PrettyPrint() string {
+func (e *EnumCons) PrettyPrint(level int) string {
 	var sb strings.Builder
 
 	sb.WriteString(e.EnumName)
@@ -334,7 +342,7 @@ func (e *EnumCons) PrettyPrint() string {
 
 	params := make([]string, len(e.Params))
 	for i, param := range e.Params {
-		params[i] = param.PrettyPrint()
+		params[i] = param.PrettyPrint(0)
 	}
 	sb.WriteString(strings.Join(params, ", "))
 
@@ -349,8 +357,8 @@ type Borrow struct {
 	Value Expr
 }
 
-func (b *Borrow) PrettyPrint() string {
-	return fmt.Sprintf("&%s", b.Value.PrettyPrint())
+func (b *Borrow) PrettyPrint(level int) string {
+	return fmt.Sprintf("%s&%s", b.Value.PrettyPrint(0))
 }
 
 type Tuple struct {
@@ -359,10 +367,10 @@ type Tuple struct {
 	Values []Expr
 }
 
-func (t *Tuple) PrettyPrint() string {
+func (t *Tuple) PrettyPrint(level int) string {
 	values := make([]string, len(t.Values))
 	for i, value := range t.Values {
-		values[i] = value.PrettyPrint()
+		values[i] = value.PrettyPrint(0)
 	}
 	return fmt.Sprintf("(%s)", strings.Join(values, ", "))
 }
@@ -374,10 +382,10 @@ type FunctionCall struct {
 	Arguments    []Expr
 }
 
-func (f *FunctionCall) PrettyPrint() string {
+func (f *FunctionCall) PrettyPrint(level int) string {
 	args := make([]string, len(f.Arguments))
 	for i, arg := range f.Arguments {
-		args[i] = arg.PrettyPrint()
+		args[i] = arg.PrettyPrint(0)
 	}
 	return fmt.Sprintf("%s(%s)", f.FunctionName, strings.Join(args, ", "))
 }
@@ -390,12 +398,12 @@ type StaticMethodCall struct {
 	Arguments  []Expr
 }
 
-func (s *StaticMethodCall) PrettyPrint() string {
+func (s *StaticMethodCall) PrettyPrint(level int) string {
 	args := make([]string, len(s.Arguments))
 	for i, arg := range s.Arguments {
-		args[i] = arg.PrettyPrint()
+		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s::%s(%s)", s.TypeName.PrettyPrint(), s.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s::%s(%s)", s.TypeName.PrettyPrint(level), s.MethodName, strings.Join(args, ", "))
 }
 
 type MethodCall struct {
@@ -406,12 +414,12 @@ type MethodCall struct {
 	Arguments  []Expr
 }
 
-func (m *MethodCall) PrettyPrint() string {
+func (m *MethodCall) PrettyPrint(level int) string {
 	args := make([]string, len(m.Arguments))
 	for i, arg := range m.Arguments {
-		args[i] = arg.PrettyPrint()
+		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s.%s(%s)", m.Value.PrettyPrint(), m.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s.%s(%s)", m.Value.PrettyPrint(level), m.MethodName, strings.Join(args, ", "))
 }
 
 type Variable struct {
@@ -420,7 +428,7 @@ type Variable struct {
 	VariableName string
 }
 
-func (v *Variable) PrettyPrint() string {
+func (v *Variable) PrettyPrint(level int) string {
 	return v.VariableName
 }
 
@@ -431,8 +439,8 @@ type FieldAccess struct {
 	Field string
 }
 
-func (f *FieldAccess) PrettyPrint() string {
-	return fmt.Sprintf("%s.%s", f.Value.PrettyPrint(), f.Field)
+func (f *FieldAccess) PrettyPrint(level int) string {
+	return fmt.Sprintf("%s.%s", f.Value.PrettyPrint(0), f.Field)
 }
 
 type IfElse struct {
@@ -443,17 +451,22 @@ type IfElse struct {
 	Else      Expr
 }
 
-func (i *IfElse) PrettyPrint() string {
+func (i *IfElse) PrettyPrint(level int) string {
 	var sb strings.Builder
+
+	indent := strings.Repeat("    ", level)
+
+	sb.WriteString(indent)
 	sb.WriteString("if ")
-	sb.WriteString(i.Condition.PrettyPrint())
+	sb.WriteString(i.Condition.PrettyPrint(0))
 	sb.WriteString(" {\n")
-	sb.WriteString("    ")
-	sb.WriteString(i.Then.PrettyPrint())
+	sb.WriteString(i.Then.PrettyPrint(level + 1))
+	sb.WriteString(indent)
 	sb.WriteString("\n} else {\n")
-	sb.WriteString("    ")
-	sb.WriteString(i.Else.PrettyPrint())
+	sb.WriteString(i.Else.PrettyPrint(level + 1))
+	sb.WriteString(indent)
 	sb.WriteString("\n}")
+
 	return sb.String()
 }
 
@@ -463,8 +476,8 @@ type Not struct {
 	Value Expr
 }
 
-func (n *Not) PrettyPrint() string {
-	return fmt.Sprintf("!%s", n.Value.PrettyPrint())
+func (n *Not) PrettyPrint(level int) string {
+	return fmt.Sprintf("!%s", n.Value.PrettyPrint(0))
 }
 
 type Add struct {
@@ -474,8 +487,8 @@ type Add struct {
 	Right Expr
 }
 
-func (a *Add) PrettyPrint() string {
-	return fmt.Sprintf("%s + %s", a.Left.PrettyPrint(), a.Right.PrettyPrint())
+func (a *Add) PrettyPrint(level int) string {
+	return fmt.Sprintf("%s + %s", a.Left.PrettyPrint(0), a.Right.PrettyPrint(0))
 }
 
 type Literal interface {
@@ -488,7 +501,7 @@ type UInt64Literal struct {
 	Value uint64
 }
 
-func (u *UInt64Literal) PrettyPrint() string {
+func (u *UInt64Literal) PrettyPrint(level int) string {
 	return fmt.Sprintf("%d_u64", u.Value)
 }
 
@@ -498,7 +511,7 @@ type StringLiteral struct {
 	Value string
 }
 
-func (s *StringLiteral) PrettyPrint() string {
+func (s *StringLiteral) PrettyPrint(level int) string {
 	return fmt.Sprintf("\"%s\"", strings.ReplaceAll(s.Value, "\"", "\\\""))
 }
 
@@ -508,7 +521,7 @@ type BoolLiteral struct {
 	Value bool
 }
 
-func (b *BoolLiteral) PrettyPrint() string {
+func (b *BoolLiteral) PrettyPrint(level int) string {
 	if b.Value {
 		return "true"
 	}
