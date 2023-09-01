@@ -149,10 +149,12 @@ func (f *FunctionDecl) PrettyPrint(level int) string {
 	sb.WriteString(f.ReturnType.PrettyPrint(level))
 	sb.WriteString(" {\n")
 
-	// for _, stmt := range f.Body {
-	// 	sb.WriteString(stmt.PrettyPrint(level + 1))
-	// 	sb.WriteString("\n")
-	// }
+	for _, stmt := range f.Body {
+		if f.Body != nil {
+			sb.WriteString(stmt.PrettyPrint(level + 1))
+			sb.WriteString("\n")
+		}
+	}
 
 	sb.WriteString("}")
 
@@ -183,7 +185,7 @@ func (a *Assign) PrettyPrint(level int) string {
 
 func (r *Return) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%sreturn %s;", indent, r.Value.PrettyPrint(level))
+	return fmt.Sprintf("%s %s", indent, r.Value.PrettyPrint(level))
 }
 
 func (b *Block) PrettyPrint(level int) string {
@@ -322,7 +324,8 @@ func (u *UInt64Literal) PrettyPrint(level int) string {
 }
 
 func (s *StringLiteral) PrettyPrint(level int) string {
-	return fmt.Sprintf("\"%s\"", strings.ReplaceAll(s.Value, "\"", "\\\""))
+	str := fmt.Sprintf("\"%s\"", strings.ReplaceAll(s.Value, "\"", "\\\""))
+	return str + ".to_string()"
 }
 
 func (b *BoolLiteral) PrettyPrint(level int) string {

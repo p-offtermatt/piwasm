@@ -59,14 +59,15 @@ func resolveDef(defField map[string]interface{}) Decl {
 	switch defField["qualifier"].(string) {
 	case "pureval":
 		name := defField["name"].(string)
-		block := resolveExpr(defField["expr"].(map[string]interface{}))
 		valType := resolveType(defField["typeAnnotation"].(map[string]interface{}))
+		block := resolveBlock(defField["expr"].(map[string]interface{}), valType)
 		return &ConstDecl{Name: name, Type: valType, Value: block}
 	case "puredef":
 		// ====extract parameters====
 		var paramNames []string
 		var paramTypes []Type
 		var returnType Type
+		var statements Block
 		// if there are no parameters, the shape of the puredef is different.
 		if defField["expr"].(map[string]interface{})["params"] == nil {
 			// no params
@@ -75,6 +76,9 @@ func resolveDef(defField map[string]interface{}) Decl {
 
 			// return type is the type in typeAnnotation
 			returnType = resolveType(defField["typeAnnotation"].(map[string]interface{}))
+
+			// ====extract the expression from expr=====
+			statements = resolveBlock(defField["expr"].(map[string]interface{}), returnType)
 		} else {
 			// parameter names are given in expr.params
 			for _, paramField := range defField["expr"].(map[string]interface{})["params"].([]interface{}) {
@@ -90,6 +94,8 @@ func resolveDef(defField map[string]interface{}) Decl {
 
 			// ====extract the return type from typeAnnotations.res=====
 			returnType = resolveType(defField["typeAnnotation"].(map[string]interface{})["res"].(map[string]interface{}))
+			// ====extract the expression from expr.expr - the next layer will always be lambda =====
+			statements = resolveBlock(defField["expr"].(map[string]interface{})["expr"].(map[string]interface{}), returnType)
 		}
 
 		// construct the params list
@@ -99,9 +105,6 @@ func resolveDef(defField map[string]interface{}) Decl {
 			params = append(params, Param{Name: paramNames[i], Type: paramTypes[i], Mutable: false})
 		}
 
-		// ====extract the expression from expr=====
-		statements := resolveExpr(defField["expr"].(map[string]interface{}))
-
 		return &FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements.Statements}
 	default:
 		fmt.Println("qualifier not supported for resolving defs: " + defField["qualifier"].(string))
@@ -109,7 +112,46 @@ func resolveDef(defField map[string]interface{}) Decl {
 	return nil
 }
 
-func resolveExpr(exprField map[string]interface{}) Block {
+// resolveBlock resolves an expression block
+// the block should return something with the given exprType
+// we need the exprType because otherwise it is impossible to tell what type a certain record that will be returned is, and
+// rust needs that explicitly
+func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
+	switch exprField["kind"].(string) {
+	case "str":
+		literal := &StringLiteral{Value: exprField["value"].(string)}
+		return Block{Statements: []Stmt{&Return{Value: literal}}}
+	case "app":
+		// this is an operator application
+
+		// find out the opcode
+		opcode := exprField["opcode"].(string)
+		switch opcode {
+		case "Rec": // we are building a record
+			args := exprField["args"].([]interface{})
+
+			// get the fields of the struct from the args
+			fields := make([]FieldValue, len(args)/2)
+			// they are in args in the form name, value, name, value, ...
+
+			for i := 0; i < len(args); i += 2 {
+				// get the name arg
+				nameArg := args[i].(map[string]interface{})
+				name := nameArg["value"].(string)
+
+				// get the value arg
+				valueArg := args[i+1].(map[string]interface{})
+
+				// TODO: get the type from the type list, since we know the name of the record
+				value := resolveBlock(valueArg, nil)
+
+				fields[i/2] = FieldValue{Name: name, Value: &value}
+			}
+			return Block{Statements: []Stmt{&Return{Value: &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}}}}
+		default:
+			fmt.Println("kind not supported for resolving exprs: " + exprField["kind"].(string))
+		}
+	}
 	return Block{}
 }
 
