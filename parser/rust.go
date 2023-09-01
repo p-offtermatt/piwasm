@@ -1,4 +1,4 @@
-package rust
+package main
 
 import (
 	"fmt"
