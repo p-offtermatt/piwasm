@@ -28,7 +28,7 @@ module neutron_stdlib {
         timeout_height: RequestPacketTimeoutHeight,
         // Timeout timestamp in absolute nanoseconds since unix epoch.
         // The timeout is disabled when set to 0.
-        timeout_timestamp: u64,
+        timeout_timestamp: int,
         // Memo to be sent along with transaction.
         memo: str,
         // Fees to refund relayer for different kinds of `SudoMsg` transmission
