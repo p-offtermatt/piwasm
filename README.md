@@ -18,6 +18,18 @@ To check the invariant:
 quint run --invariant successfulTransfersWereSent ibc_transfer.qnt --max-samples=200
 ```
 
+To generate quint output, run:
+
+```
+quint typecheck quint/ibc_transfer.qnt --out quint/ibc_transfer.json
+```
+
+To run the parser, run:
+
+```
+cd parser
+go run . ../quint/ibc_transfer_types.json
+```
 
 ## Problems
 
