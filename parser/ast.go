@@ -53,8 +53,8 @@ type (
 	}
 	MapType struct {
 		Type
-		ArgType    Type
-		ReturnType Type
+		Key   Type
+		Value Type
 	}
 	TypeRef struct {
 		Type

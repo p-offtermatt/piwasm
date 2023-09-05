@@ -44,9 +44,9 @@ func (t *SetType) PrettyPrint(level int) string {
 func (t *MapType) PrettyPrint(level int) string {
 	sb := strings.Builder{}
 	sb.WriteString("HashMap::<")
-	sb.WriteString(t.ArgType.PrettyPrint(level))
+	sb.WriteString(t.Key.PrettyPrint(level))
 	sb.WriteString(", ")
-	sb.WriteString(t.ReturnType.PrettyPrint(level))
+	sb.WriteString(t.Value.PrettyPrint(level))
 	sb.WriteString(">")
 	return sb.String()
 }

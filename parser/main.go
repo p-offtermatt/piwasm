@@ -37,7 +37,7 @@ func resolveType(typeField map[string]interface{}) Type {
 	case "fun":
 		argType := resolveType(typeField["arg"].(map[string]interface{}))
 		returnType := resolveType(typeField["res"].(map[string]interface{}))
-		return &MapType{ArgType: argType, ReturnType: returnType}
+		return &MapType{Key: argType, Value: returnType}
 	case "bool":
 		return &BoolType{}
 	case "tup":
@@ -184,7 +184,7 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 		case "keys":
 			// this maps to `mapExpr.keys().collect::<HashSet<_>>`
 			args := exprField["args"].([]interface{})
-			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{ArgType: WildcardType, ReturnType: WildcardType})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
 			keysExpr := &MethodCall{
 				Value:      mapExpr,
 				MethodName: "keys",
