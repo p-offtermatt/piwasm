@@ -166,8 +166,8 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 		case "contains":
 			// this maps to `HashSet::contains_key(&self, &value))`
 			args := exprField["args"].([]interface{})
-			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: exprType})
-			value := resolveExpr(args[1].(map[string]interface{}), exprType)
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			value := resolveExpr(args[1].(map[string]interface{}), nil)
 			return &MethodCall{
 				Value:      set,
 				MethodName: "contains_key",
@@ -177,7 +177,7 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 		case "keys":
 			// this maps to `mapExpr.keys().collect::<HashSet<_>>`
 			args := exprField["args"].([]interface{})
-			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{ArgType: exprType.(*SetType).ElementType, ReturnType: &BoolType{}})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{ArgType: WildcardType, ReturnType: WildcardType})
 			keysExpr := &MethodCall{
 				Value:      mapExpr,
 				MethodName: "keys",
