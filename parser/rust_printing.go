@@ -249,7 +249,7 @@ func (e *EnumCons) PrettyPrint(level int) string {
 }
 
 func (b *Borrow) PrettyPrint(level int) string {
-	return fmt.Sprintf("%s&%s", b.Value.PrettyPrint(0))
+	return fmt.Sprintf("&%s", b.Value.PrettyPrint(0))
 }
 
 func (t *Tuple) PrettyPrint(level int) string {
