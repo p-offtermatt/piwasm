@@ -117,6 +117,9 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 	case "str":
 		return &StringLiteral{Value: exprField["value"].(string)}
 
+	case "int":
+		return &UInt64Literal{Value: uint64(exprField["value"].(float64))}
+
 	case "app":
 		// this is an operator application
 
