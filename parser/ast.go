@@ -99,7 +99,7 @@ type (
 		Decl
 		Name  string
 		Type  Type
-		Value Block
+		Value Expr
 	}
 
 	ValDecl struct {

@@ -60,7 +60,7 @@ func resolveDef(defField map[string]interface{}) Decl {
 	case "pureval":
 		name := defField["name"].(string)
 		valType := resolveType(defField["typeAnnotation"].(map[string]interface{}))
-		block := resolveBlock(defField["expr"].(map[string]interface{}), valType)
+		block := resolveExpr(defField["expr"].(map[string]interface{}), valType)
 		return &ConstDecl{Name: name, Type: valType, Value: block}
 	case "puredef":
 		// ====extract parameters====

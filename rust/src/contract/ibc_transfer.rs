@@ -25,9 +25,9 @@ pub fn GetInstantiateMsg() -> InstantiateMsg {
     }
 }
 
-pub const CONTRACT_NAME: String = { "ibc_transfer".to_string() };
+pub const CONTRACT_NAME: String = "ibc_transfer".to_string();
 
-pub const CONTRACT_VERSION_STR: String = { "0.1.0".to_string() };
+pub const CONTRACT_VERSION_STR: String = "0.1.0".to_string();
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ContractStorage {
