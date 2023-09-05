@@ -102,7 +102,7 @@ func resolveDef(defField map[string]interface{}) Decl {
 		var params []Param
 		for i := 0; i < len(paramNames); i++ {
 			// Mutable is false because these are puredefs
-			params = append(params, Param{Name: paramNames[i], Type: paramTypes[i], Mutable: false})
+			params = append(params, Param{Name: paramNames[i], Type: paramTypes[i], Mutable: true})
 		}
 
 		return &FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements.Statements}
