@@ -152,7 +152,8 @@ func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
 			fmt.Println("kind not supported for resolving exprs: " + exprField["kind"].(string))
 		}
 	}
-	return Block{}
+
+	return Block{Statements: []Stmt{&Todo{}}}
 }
 
 func main() {

@@ -334,3 +334,8 @@ func (b *BoolLiteral) PrettyPrint(level int) string {
 	}
 	return "false"
 }
+
+func (t *Todo) PrettyPrint(level int) string {
+	indent := strings.Repeat("    ", level)
+	return fmt.Sprintf("%stodo!()", indent)
+}
