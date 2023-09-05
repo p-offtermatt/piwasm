@@ -59,7 +59,7 @@ pub fn reply(
         .replyQueue
         .keys()
         .collect::<HashSet<_>>()
-        .contains_key(&msg.id)
+        .contains(&msg.id)
     {
         let error = Todo {
             msg: "got reply to unknown transfer".to_string(),
@@ -68,7 +68,7 @@ pub fn reply(
     } else {
         let replyTo = curStorage.replyQueue.get(&msg.id).unwrap();
         let s1 = {
-            curStorage.replyQueue = curStorage.replyQueue.remove(&msg.id);
+            curStorage.replyQueue = curStorage.replyQueue.without(&msg.id);
             curStorage
         };
         let s2 = {

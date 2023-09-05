@@ -205,15 +205,15 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			expr := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
 			return &Not{Value: expr}
 
-		// TODO: Specialize map.keys().contains(key) to map.contains_key(&key)
+		// TODO: Specialize map.keys().contains(key) to map.contains(&key)
 		case "contains":
-			// this maps to `setExpr.contains_key(&value)`
+			// this maps to `setExpr.contains(&value)`
 			args := exprField["args"].([]interface{})
 			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
 			value := resolveExpr(args[1].(map[string]interface{}), nil)
 			return &MethodCall{
 				Value:      set,
-				MethodName: "contains_key",
+				MethodName: "contains",
 				Arguments:  []Expr{&Borrow{Value: value}},
 			}
 
@@ -236,7 +236,7 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			key := resolveExpr(args[1].(map[string]interface{}), &SetType{ElementType: WildcardType})
 			return &MethodCall{
 				Value:      set,
-				MethodName: "remove",
+				MethodName: "without",
 				Arguments:  []Expr{&Borrow{Value: key}},
 				TypeArgs:   []Type{},
 			}
