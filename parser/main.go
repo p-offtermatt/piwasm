@@ -205,6 +205,39 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 				Arguments:  []Expr{},
 			}
 
+		case "get":
+			// this maps to `mapExpr.get(&key).unwrap()`
+			args := exprField["args"].([]interface{})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
+			keyExpr := resolveExpr(args[1].(map[string]interface{}), nil)
+			getExpr := &MethodCall{
+				Value:      mapExpr,
+				MethodName: "get",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{&Borrow{Value: keyExpr}},
+			}
+			return &MethodCall{
+				Value:      getExpr,
+				MethodName: "unwrap",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{},
+			}
+
+		case "put":
+			// this maps to `{ mapExpr.insert(key, value); mapExpr }`
+			args := exprField["args"].([]interface{})
+			// mapType := exprType.(*MapType)
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
+			keyExpr := resolveExpr(args[1].(map[string]interface{}), WildcardType)
+			valueExpr := resolveExpr(args[2].(map[string]interface{}), WildcardType)
+			insertExpr := &MethodCall{
+				Value:      mapExpr,
+				MethodName: "insert",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{keyExpr, valueExpr},
+			}
+			return &Block{Statements: []Stmt{insertExpr, &Return{Value: mapExpr}}}
+
 		case "field":
 			// this is a field access
 			args := exprField["args"].([]interface{})
