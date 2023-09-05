@@ -178,7 +178,7 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			return &Not{Value: expr}
 
 		case "contains":
-			// this maps to `HashSet::contains_key(&self, &value))`
+			// this maps to `setExpr.contains_key(&value)`
 			args := exprField["args"].([]interface{})
 			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
 			value := resolveExpr(args[1].(map[string]interface{}), nil)
