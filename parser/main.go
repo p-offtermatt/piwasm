@@ -106,9 +106,16 @@ func resolveDef(defField map[string]interface{}) Decl {
 		}
 
 		return &FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements.Statements}
+
+	case "val":
+		name := defField["name"].(string)
+		expr := resolveExpr(defField["expr"].(map[string]interface{}), &ConstType{Name: "Todo"})
+		return &ValDecl{Name: name, Value: expr}
+
 	default:
 		fmt.Println("qualifier not supported for resolving defs: " + defField["qualifier"].(string))
 	}
+
 	return nil
 }
 
@@ -205,6 +212,12 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 	case "name":
 		// this is a variable
 		return &Variable{VariableName: exprField["name"].(string)}
+
+	case "let":
+		// this is a let expression
+		opdef := resolveDef(exprField["opdef"].(map[string]interface{})).(*ValDecl)
+		body := resolveExpr(exprField["expr"].(map[string]interface{}), exprType)
+		return &Let{VariableName: opdef.Name, Value: opdef.Value, Body: body}
 
 	default:
 		fmt.Println("kind not supported for resolving expr: " + exprField["kind"].(string))

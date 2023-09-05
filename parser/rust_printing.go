@@ -165,6 +165,10 @@ func (f *ConstDecl) PrettyPrint(level int) string {
 	return fmt.Sprintf("pub const %s: %s = %s;", f.Name, f.Type.PrettyPrint(level), f.Value.PrettyPrint(level))
 }
 
+func (f *ValDecl) PrettyPrint(level int) string {
+	return fmt.Sprintf("val %s = %s;", f.Name, f.Value.PrettyPrint(level))
+}
+
 func (p *Param) PrettyPrint(level int) string {
 	mut := ""
 	if p.Mutable {
@@ -175,7 +179,7 @@ func (p *Param) PrettyPrint(level int) string {
 
 func (l *Let) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%slet %s = %s;", indent, l.VariableName, l.Value.PrettyPrint(0))
+	return fmt.Sprintf("%slet %s = %s;\n%s", indent, l.VariableName, l.Value.PrettyPrint(0), l.Body.PrettyPrint(level))
 }
 
 func (a *Assign) PrettyPrint(level int) string {

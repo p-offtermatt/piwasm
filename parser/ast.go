@@ -100,6 +100,12 @@ type (
 		Value Block
 	}
 
+	ValDecl struct {
+		Decl
+		Name  string
+		Value Expr
+	}
+
 	TypeDecl struct {
 		Decl
 		Name string
@@ -118,16 +124,9 @@ type Param struct {
 }
 
 // Statements
-type (
-	Stmt interface {
-		AST
-	}
-	Let struct {
-		Stmt
-		VariableName string
-		Value        Expr
-	}
-)
+type Stmt interface {
+	AST
+}
 
 type Assign struct {
 	Stmt
@@ -194,6 +193,12 @@ type MethodCall struct {
 	TypeArgs   []Type
 	Arguments  []Expr
 }
+type Let struct {
+	Expr
+	VariableName string
+	Value        Expr
+	Body         Expr
+}
 type Variable struct {
 	Expr
 	VariableName string
@@ -218,6 +223,7 @@ type Add struct {
 	Left  Expr
 	Right Expr
 }
+
 type Literal interface {
 	Expr
 }
