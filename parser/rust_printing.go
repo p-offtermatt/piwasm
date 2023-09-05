@@ -201,7 +201,7 @@ func (b *Block) PrettyPrint(level int) string {
 	sb.WriteString("{\n")
 	for _, stmt := range b.Statements {
 		sb.WriteString(stmt.PrettyPrint(level + 1))
-		sb.WriteString("\n")
+		sb.WriteString(";\n")
 	}
 	sb.WriteString(indent)
 	sb.WriteString("}\n")

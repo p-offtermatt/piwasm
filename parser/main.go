@@ -245,6 +245,47 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			fieldName := args[1].(map[string]interface{})["value"].(string)
 			return &FieldAccess{Value: value, Field: fieldName}
 
+		case "with":
+			// this is a record update: { rec.field = value; rec }
+			args := exprField["args"].([]interface{})
+			rec := resolveExpr(args[0].(map[string]interface{}), nil)
+			fieldName := resolveExpr(args[1].(map[string]interface{}), nil).(*StringLiteral)
+			value := resolveExpr(args[2].(map[string]interface{}), &ConstType{Name: "Todo"})
+			assignExpr := &Assign{
+				Dest:  &FieldAccess{Value: rec, Field: fieldName.Value},
+				Value: value,
+			}
+			return &Block{Statements: []Stmt{assignExpr, &Return{Value: rec}}}
+
+		case "Tup":
+			// this is a tuple
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), nil))
+			}
+			return &Tuple{Values: values}
+
+		case "Ok":
+			// this maps to `StdResult::Ok(value)`
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			return &EnumCons{
+				EnumName: "StdResult",
+				Variant:  "Ok",
+				Params:   []Expr{value},
+			}
+
+		case "Err":
+			// this maps to `StdResult::Err(value)`
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			return &EnumCons{
+				EnumName: "StdResult",
+				Variant:  "Ok",
+				Params:   []Expr{value},
+			}
+
 		default:
 			fmt.Println("app opcode not supported for resolving expr: " + opcode)
 		}
