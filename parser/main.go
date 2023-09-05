@@ -133,6 +133,13 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 		// find out the opcode
 		opcode := exprField["opcode"].(string)
 		switch opcode {
+		case "iadd":
+			// addition
+			args := exprField["args"].([]interface{})
+			left := resolveExpr(args[0].(map[string]interface{}), &UInt64Type{})
+			right := resolveExpr(args[1].(map[string]interface{}), &UInt64Type{})
+			return &Add{Left: left, Right: right}
+
 		case "Rec": // we are building a record
 			args := exprField["args"].([]interface{})
 
