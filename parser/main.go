@@ -316,9 +316,9 @@ func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
 	return Block{Statements: []Stmt{&Return{Value: expr}}}
 }
 
-func prettyPrint(i interface{}) string {
+func prettyPrint(i interface{}) {
 	s, _ := json.MarshalIndent(i, "", "  ")
-	return string(s)
+	fmt.Fprintln(os.Stderr, string(s))
 }
 
 func main() {
