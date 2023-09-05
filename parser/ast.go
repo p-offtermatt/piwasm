@@ -63,6 +63,8 @@ type (
 	}
 )
 
+var WildcardType Type = &ConstType{Name: "_"}
+
 type Import struct {
 	AST
 	Path string
@@ -175,18 +177,21 @@ type Tuple struct {
 type FunctionCall struct {
 	Expr
 	FunctionName string
+	TypeArgs     []Type
 	Arguments    []Expr
 }
 type StaticMethodCall struct {
 	Expr
 	TypeName   Type
 	MethodName string
+	TypeArgs   []Type
 	Arguments  []Expr
 }
 type MethodCall struct {
 	Expr
 	Value      Expr
 	MethodName string
+	TypeArgs   []Type
 	Arguments  []Expr
 }
 type Variable struct {
@@ -228,6 +233,9 @@ type BoolLiteral struct {
 	Literal
 	Value bool
 }
-type Todo struct {
+type Macro struct {
 	Expr
+	Name string
 }
+
+var Todo = Macro{Name: "todo"}

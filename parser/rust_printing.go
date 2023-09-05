@@ -260,12 +260,24 @@ func (t *Tuple) PrettyPrint(level int) string {
 	return fmt.Sprintf("(%s)", strings.Join(values, ", "))
 }
 
+func typeArgs(types []Type) string {
+	if len(types) == 0 {
+		return ""
+	}
+
+	args := make([]string, len(types))
+	for i, typ := range types {
+		args[i] = typ.PrettyPrint(0)
+	}
+	return fmt.Sprintf("::<%s>", strings.Join(args, ", "))
+}
+
 func (f *FunctionCall) PrettyPrint(level int) string {
 	args := make([]string, len(f.Arguments))
 	for i, arg := range f.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s(%s)", f.FunctionName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s%s(%s)", f.FunctionName, typeArgs(f.TypeArgs), strings.Join(args, ", "))
 }
 
 func (s *StaticMethodCall) PrettyPrint(level int) string {
@@ -273,7 +285,7 @@ func (s *StaticMethodCall) PrettyPrint(level int) string {
 	for i, arg := range s.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s::%s(%s)", s.TypeName.PrettyPrint(level), s.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s::%s%s(%s)", s.TypeName.PrettyPrint(level), s.MethodName, typeArgs(s.TypeArgs), strings.Join(args, ", "))
 }
 
 func (m *MethodCall) PrettyPrint(level int) string {
@@ -281,7 +293,7 @@ func (m *MethodCall) PrettyPrint(level int) string {
 	for i, arg := range m.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s.%s(%s)", m.Value.PrettyPrint(level), m.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s.%s%s(%s)", m.Value.PrettyPrint(level), m.MethodName, typeArgs(m.TypeArgs), strings.Join(args, ", "))
 }
 
 func (v *Variable) PrettyPrint(level int) string {
@@ -335,7 +347,7 @@ func (b *BoolLiteral) PrettyPrint(level int) string {
 	return "false"
 }
 
-func (t *Todo) PrettyPrint(level int) string {
+func (m *Macro) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%stodo!()", indent)
+	return fmt.Sprintf("%s%s!()", m.Name, indent)
 }

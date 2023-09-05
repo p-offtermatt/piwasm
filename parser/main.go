@@ -112,15 +112,11 @@ func resolveDef(defField map[string]interface{}) Decl {
 	return nil
 }
 
-// resolveBlock resolves an expression block
-// the block should return something with the given exprType
-// we need the exprType because otherwise it is impossible to tell what type a certain record that will be returned is, and
-// rust needs that explicitly
-func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
+func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 	switch exprField["kind"].(string) {
 	case "str":
-		literal := &StringLiteral{Value: exprField["value"].(string)}
-		return Block{Statements: []Stmt{&Return{Value: literal}}}
+		return &StringLiteral{Value: exprField["value"].(string)}
+
 	case "app":
 		// this is an operator application
 
@@ -143,17 +139,89 @@ func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
 				valueArg := args[i+1].(map[string]interface{})
 
 				// TODO: get the type from the type list, since we know the name of the record
-				value := resolveBlock(valueArg, nil)
+				value := resolveExpr(valueArg, nil)
 
-				fields[i/2] = FieldValue{Name: name, Value: &value}
+				fields[i/2] = FieldValue{Name: name, Value: value}
 			}
-			return Block{Statements: []Stmt{&Return{Value: &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}}}}
+
+			return &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}
+
+		case "ite":
+			// this is an if-then-else expression
+			args := exprField["args"].([]interface{})
+			cond := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
+			then := resolveExpr(args[1].(map[string]interface{}), exprType)
+			els := resolveExpr(args[2].(map[string]interface{}), exprType)
+			return &IfElse{Condition: cond, Then: then, Else: els}
+
+		case "not":
+			// this is a not expression
+			args := exprField["args"].([]interface{})
+			expr := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
+			return &Not{Value: expr}
+
+		case "contains":
+			// this maps to `HashSet::contains_key(&self, &value))`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: exprType})
+			value := resolveExpr(args[1].(map[string]interface{}), exprType)
+			return &MethodCall{
+				Value:      set,
+				MethodName: "contains_key",
+				Arguments:  []Expr{&Borrow{Value: value}},
+			}
+
+		case "keys":
+			// this maps to `mapExpr.keys().collect::<HashSet<_>>`
+			args := exprField["args"].([]interface{})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{ArgType: exprType.(*SetType).ElementType, ReturnType: &BoolType{}})
+			keysExpr := &MethodCall{
+				Value:      mapExpr,
+				MethodName: "keys",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{},
+			}
+			return &MethodCall{
+				Value:      keysExpr,
+				MethodName: "collect",
+				TypeArgs:   []Type{&SetType{ElementType: WildcardType}},
+				Arguments:  []Expr{},
+			}
+
+		case "field":
+			// this is a field access
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			fieldName := args[1].(map[string]interface{})["value"].(string)
+			return &FieldAccess{Value: value, Field: fieldName}
+
 		default:
-			fmt.Println("kind not supported for resolving exprs: " + exprField["kind"].(string))
+			fmt.Println("app opcode not supported for resolving expr: " + opcode)
 		}
+
+	case "name":
+		// this is a variable
+		return &Variable{VariableName: exprField["name"].(string)}
+
+	default:
+		fmt.Println("kind not supported for resolving expr: " + exprField["kind"].(string))
 	}
 
-	return Block{Statements: []Stmt{&Todo{}}}
+	return &Todo
+}
+
+// resolveBlock resolves an expression block
+// the block should return something with the given exprType
+// we need the exprType because otherwise it is impossible to tell what type a certain record that will be returned is, and
+// rust needs that explicitly
+func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
+	expr := resolveExpr(exprField, exprType)
+	return Block{Statements: []Stmt{&Return{Value: expr}}}
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	return string(s)
 }
 
 func main() {
