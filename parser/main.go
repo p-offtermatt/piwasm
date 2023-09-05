@@ -133,12 +133,6 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 		// find out the opcode
 		opcode := exprField["opcode"].(string)
 		switch opcode {
-		case "iadd":
-			// addition
-			args := exprField["args"].([]interface{})
-			left := resolveExpr(args[0].(map[string]interface{}), &UInt64Type{})
-			right := resolveExpr(args[1].(map[string]interface{}), &UInt64Type{})
-			return &Add{Left: left, Right: right}
 
 		case "Rec": // we are building a record
 			args := exprField["args"].([]interface{})
@@ -163,6 +157,40 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 
 			return &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}
 
+		case "Tup":
+			// this is a tuple
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Tuple{Values: values}
+
+		case "Set":
+			// this is a set
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Macro{Name: "im::hashset", Args: values}
+
+		case "List":
+			// this is a list
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Macro{Name: "im::vector", Args: values}
+
+		case "iadd":
+			// addition
+			args := exprField["args"].([]interface{})
+			left := resolveExpr(args[0].(map[string]interface{}), &UInt64Type{})
+			right := resolveExpr(args[1].(map[string]interface{}), &UInt64Type{})
+			return &Add{Left: left, Right: right}
+
 		case "ite":
 			// this is an if-then-else expression
 			args := exprField["args"].([]interface{})
@@ -177,6 +205,7 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			expr := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
 			return &Not{Value: expr}
 
+		// TODO: Specialize map.keys().contains(key) to map.contains_key(&key)
 		case "contains":
 			// this maps to `setExpr.contains_key(&value)`
 			args := exprField["args"].([]interface{})
@@ -186,6 +215,30 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 				Value:      set,
 				MethodName: "contains_key",
 				Arguments:  []Expr{&Borrow{Value: value}},
+			}
+
+		case "union":
+			// this maps to `setExpr.union(otherSetExpr)`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			otherSet := resolveExpr(args[1].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			return &MethodCall{
+				Value:      set,
+				MethodName: "union",
+				Arguments:  []Expr{otherSet},
+				TypeArgs:   []Type{},
+			}
+
+		case "mapRemove":
+			// this maps to `setExpr.without(&key)`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			key := resolveExpr(args[1].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			return &MethodCall{
+				Value:      set,
+				MethodName: "remove",
+				Arguments:  []Expr{&Borrow{Value: key}},
+				TypeArgs:   []Type{},
 			}
 
 		case "keys":
@@ -224,19 +277,18 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 			}
 
 		case "put":
-			// this maps to `{ mapExpr.insert(key, value); mapExpr }`
+			// this maps to `mapExpr.update(key, value)`
 			args := exprField["args"].([]interface{})
 			// mapType := exprType.(*MapType)
 			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
 			keyExpr := resolveExpr(args[1].(map[string]interface{}), WildcardType)
 			valueExpr := resolveExpr(args[2].(map[string]interface{}), WildcardType)
-			insertExpr := &MethodCall{
+			return &MethodCall{
 				Value:      mapExpr,
-				MethodName: "insert",
+				MethodName: "update",
 				TypeArgs:   []Type{},
 				Arguments:  []Expr{keyExpr, valueExpr},
 			}
-			return &Block{Statements: []Stmt{insertExpr, &Return{Value: mapExpr}}}
 
 		case "field":
 			// this is a field access
@@ -256,15 +308,6 @@ func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 				Value: value,
 			}
 			return &Block{Statements: []Stmt{assignExpr, &Return{Value: rec}}}
-
-		case "Tup":
-			// this is a tuple
-			args := exprField["args"].([]interface{})
-			var values []Expr
-			for _, arg := range args {
-				values = append(values, resolveExpr(arg.(map[string]interface{}), nil))
-			}
-			return &Tuple{Values: values}
 
 		case "Ok":
 			// this maps to `StdResult::Ok(value)`
@@ -412,8 +455,9 @@ func main() {
 
 	// hard code some dependencies we might need. rust can just ignore what we do not need
 	imports := []Import{
-		{Path: "std::collections::HashMap"},
-		{Path: "std::collections::HashSet"},
+		{Path: "im::HashMap"},
+		{Path: "im::HashSet"},
+		{Path: "im::Vector"},
 		{Path: "super::neutron_stdlib::*"},
 		{Path: "super::wasm_stdlib::*"},
 	}

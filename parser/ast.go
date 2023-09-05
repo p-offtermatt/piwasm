@@ -242,6 +242,7 @@ type BoolLiteral struct {
 type Macro struct {
 	Expr
 	Name string
+	Args []Expr
 }
 
-var Todo = Macro{Name: "todo"}
+var Todo = Macro{Name: "todo", Args: []Expr{}}

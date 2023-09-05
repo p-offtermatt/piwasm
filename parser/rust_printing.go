@@ -184,12 +184,12 @@ func (l *Let) PrettyPrint(level int) string {
 
 func (a *Assign) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%s%s = %s;", indent, a.Dest.PrettyPrint(0), a.Value.PrettyPrint(0))
+	return fmt.Sprintf("%s%s = %s", indent, a.Dest.PrettyPrint(0), a.Value.PrettyPrint(0))
 }
 
 func (r *Return) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%s %s", indent, r.Value.PrettyPrint(level))
+	return fmt.Sprintf("%s%s", indent, r.Value.PrettyPrint(level))
 }
 
 func (b *Block) PrettyPrint(level int) string {
@@ -199,9 +199,12 @@ func (b *Block) PrettyPrint(level int) string {
 
 	sb.WriteString(indent)
 	sb.WriteString("{\n")
-	for _, stmt := range b.Statements {
+	for i, stmt := range b.Statements {
 		sb.WriteString(stmt.PrettyPrint(level + 1))
-		sb.WriteString(";\n")
+		if i < len(b.Statements)-1 {
+			sb.WriteString(";")
+		}
+		sb.WriteString("\n")
 	}
 	sb.WriteString(indent)
 	sb.WriteString("}\n")
@@ -353,5 +356,9 @@ func (b *BoolLiteral) PrettyPrint(level int) string {
 
 func (m *Macro) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%s%s!()", m.Name, indent)
+	args := make([]string, len(m.Args))
+	for i, arg := range m.Args {
+		args[i] = arg.PrettyPrint(0)
+	}
+	return fmt.Sprintf("%s%s!(%s)", m.Name, indent, strings.Join(args, ", "))
 }
