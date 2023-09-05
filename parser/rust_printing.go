@@ -102,7 +102,7 @@ func (p *Program) PrettyPrint(level int) string {
 func (s *StructDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
-	sb.WriteString("struct ")
+	sb.WriteString("pub struct ")
 	sb.WriteString(s.Name)
 	sb.WriteString(" {\n")
 
@@ -118,7 +118,7 @@ func (s *StructDecl) PrettyPrint(level int) string {
 }
 
 func (f *Field) PrettyPrint(level int) string {
-	return fmt.Sprintf("%s: %s", f.Name, f.Type.PrettyPrint(level))
+	return fmt.Sprintf("pub %s: %s", f.Name, f.Type.PrettyPrint(level))
 }
 
 func (t *TypeDecl) PrettyPrint(level int) string {
@@ -135,7 +135,7 @@ func (t *TypeDecl) PrettyPrint(level int) string {
 func (f *FunctionDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
-	sb.WriteString("fn ")
+	sb.WriteString("pub fn ")
 	sb.WriteString(f.Name)
 	sb.WriteString("(")
 
