@@ -83,6 +83,7 @@ type (
 		Decl
 		Name   string
 		Fields []Field
+		Attrs  []string
 	}
 	FunctionDecl struct {
 		Decl
@@ -90,6 +91,7 @@ type (
 		Params     []Param
 		ReturnType Type
 		Body       []Stmt
+		Attrs      []string
 	}
 
 	// declares a global constant

@@ -102,6 +102,11 @@ func (p *Program) PrettyPrint(level int) string {
 func (s *StructDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
+	if len(s.Attrs) > 0 {
+		sb.WriteString("#[")
+		sb.WriteString(strings.Join(s.Attrs, ", "))
+		sb.WriteString("]\n")
+	}
 	sb.WriteString("pub struct ")
 	sb.WriteString(s.Name)
 	sb.WriteString(" {\n")
@@ -134,6 +139,12 @@ func (t *TypeDecl) PrettyPrint(level int) string {
 
 func (f *FunctionDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
+
+	if len(f.Attrs) > 0 {
+		sb.WriteString("#[")
+		sb.WriteString(strings.Join(f.Attrs, ", "))
+		sb.WriteString("]\n")
+	}
 
 	sb.WriteString("pub fn ")
 	sb.WriteString(f.Name)

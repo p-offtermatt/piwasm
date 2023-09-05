@@ -436,7 +436,8 @@ func main() {
 					structType := declType.(*StructType)
 
 					// this is a struct decl
-					declaration = &StructDecl{Name: name, Fields: structType.Fields}
+					attrs := []string{"derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)"}
+					declaration = &StructDecl{Name: name, Fields: structType.Fields, Attrs: attrs}
 				} else {
 					// this is a type decl
 					declaration = &TypeDecl{Name: name, Type: declType}
@@ -458,6 +459,7 @@ func main() {
 		{Path: "im::HashMap"},
 		{Path: "im::HashSet"},
 		{Path: "im::Vector"},
+		{Path: "serde::{Serialize, Deserialize}"},
 		{Path: "super::neutron_stdlib::*"},
 		{Path: "super::wasm_stdlib::*"},
 	}
