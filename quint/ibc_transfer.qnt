@@ -32,10 +32,25 @@ module ibc_transfer_utils {
     pure val CONTRACT_NAME: str = "ibc_transfer"
     // the version of the contract
     pure val CONTRACT_VERSION_STR: str = "0.1.0"
+
+    // Quint does not support empty types, so we need to add a dummy field
+    type InstantiateMsg = {data: str}
+
+    // a utility function to get a default InstantiateMsg
+    pure def GetInstantiateMsg: InstantiateMsg = {data: "Hello, World!"}
+
+    type ExecuteMsg_Send = {
+        channel: str,
+        to: str,
+        denom: str,
+        amount: int,
+        // no support for options, so just int here
+        timeout_height: int
+    }
+
 }
 
 module ibc_transfer_entrypoints {
-    import msg.* from "./msg"
     import wasm_stdlib.* from "./wasm_stdlib"
     import neutron_stdlib.* from "./neutron_stdlib"
     import quint_stdlib.* from "./quint_stdlib"
@@ -118,7 +133,6 @@ module ibc_transfer_test {
     import ibc_transfer_entrypoints.*
     import ibc_transfer_utils.*
     import wasm_stdlib.* from "./wasm_stdlib"
-    import msg.* from "./msg"
 
     var storage: ContractStorage
 
