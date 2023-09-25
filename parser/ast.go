@@ -53,8 +53,8 @@ type (
 	}
 	MapType struct {
 		Type
-		ArgType    Type
-		ReturnType Type
+		Key   Type
+		Value Type
 	}
 	TypeRef struct {
 		Type
@@ -62,6 +62,8 @@ type (
 		Mutable bool
 	}
 )
+
+var WildcardType Type = &ConstType{Name: "_"}
 
 type Import struct {
 	AST
@@ -81,6 +83,7 @@ type (
 		Decl
 		Name   string
 		Fields []Field
+		Attrs  []string
 	}
 	FunctionDecl struct {
 		Decl
@@ -88,6 +91,7 @@ type (
 		Params     []Param
 		ReturnType Type
 		Body       []Stmt
+		Attrs      []string
 	}
 
 	// declares a global constant
@@ -95,7 +99,13 @@ type (
 		Decl
 		Name  string
 		Type  Type
-		Value Block
+		Value Expr
+	}
+
+	ValDecl struct {
+		Decl
+		Name  string
+		Value Expr
 	}
 
 	TypeDecl struct {
@@ -116,16 +126,9 @@ type Param struct {
 }
 
 // Statements
-type (
-	Stmt interface {
-		AST
-	}
-	Let struct {
-		Stmt
-		VariableName string
-		Value        Expr
-	}
-)
+type Stmt interface {
+	AST
+}
 
 type Assign struct {
 	Stmt
@@ -175,19 +178,28 @@ type Tuple struct {
 type FunctionCall struct {
 	Expr
 	FunctionName string
+	TypeArgs     []Type
 	Arguments    []Expr
 }
 type StaticMethodCall struct {
 	Expr
 	TypeName   Type
 	MethodName string
+	TypeArgs   []Type
 	Arguments  []Expr
 }
 type MethodCall struct {
 	Expr
 	Value      Expr
 	MethodName string
+	TypeArgs   []Type
 	Arguments  []Expr
+}
+type Let struct {
+	Expr
+	VariableName string
+	Value        Expr
+	Body         Expr
 }
 type Variable struct {
 	Expr
@@ -213,6 +225,7 @@ type Add struct {
 	Left  Expr
 	Right Expr
 }
+
 type Literal interface {
 	Expr
 }
@@ -228,6 +241,10 @@ type BoolLiteral struct {
 	Literal
 	Value bool
 }
-type Todo struct {
+type Macro struct {
 	Expr
+	Name string
+	Args []Expr
 }
+
+var Todo = Macro{Name: "todo", Args: []Expr{}}

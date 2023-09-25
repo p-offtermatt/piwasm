@@ -16,7 +16,7 @@ pub type MsgInfo = cosmwasm_std::MessageInfo;
 //     pub funds: Vec<Coin>,
 // }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ContractVersion {
     pub contract: String,
     pub version: String,
