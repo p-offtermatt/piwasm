@@ -44,9 +44,9 @@ func (t *SetType) PrettyPrint(level int) string {
 func (t *MapType) PrettyPrint(level int) string {
 	sb := strings.Builder{}
 	sb.WriteString("HashMap::<")
-	sb.WriteString(t.ArgType.PrettyPrint(level))
+	sb.WriteString(t.Key.PrettyPrint(level))
 	sb.WriteString(", ")
-	sb.WriteString(t.ReturnType.PrettyPrint(level))
+	sb.WriteString(t.Value.PrettyPrint(level))
 	sb.WriteString(">")
 	return sb.String()
 }
@@ -102,6 +102,11 @@ func (p *Program) PrettyPrint(level int) string {
 func (s *StructDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
+	if len(s.Attrs) > 0 {
+		sb.WriteString("#[")
+		sb.WriteString(strings.Join(s.Attrs, ", "))
+		sb.WriteString("]\n")
+	}
 	sb.WriteString("pub struct ")
 	sb.WriteString(s.Name)
 	sb.WriteString(" {\n")
@@ -135,6 +140,12 @@ func (t *TypeDecl) PrettyPrint(level int) string {
 func (f *FunctionDecl) PrettyPrint(level int) string {
 	var sb strings.Builder
 
+	if len(f.Attrs) > 0 {
+		sb.WriteString("#[")
+		sb.WriteString(strings.Join(f.Attrs, ", "))
+		sb.WriteString("]\n")
+	}
+
 	sb.WriteString("pub fn ")
 	sb.WriteString(f.Name)
 	sb.WriteString("(")
@@ -165,6 +176,10 @@ func (f *ConstDecl) PrettyPrint(level int) string {
 	return fmt.Sprintf("pub const %s: %s = %s;", f.Name, f.Type.PrettyPrint(level), f.Value.PrettyPrint(level))
 }
 
+func (f *ValDecl) PrettyPrint(level int) string {
+	return fmt.Sprintf("val %s = %s;", f.Name, f.Value.PrettyPrint(level))
+}
+
 func (p *Param) PrettyPrint(level int) string {
 	mut := ""
 	if p.Mutable {
@@ -175,17 +190,17 @@ func (p *Param) PrettyPrint(level int) string {
 
 func (l *Let) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%slet %s = %s;", indent, l.VariableName, l.Value.PrettyPrint(0))
+	return fmt.Sprintf("%slet %s = %s;\n%s", indent, l.VariableName, l.Value.PrettyPrint(0), l.Body.PrettyPrint(level))
 }
 
 func (a *Assign) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%s%s = %s;", indent, a.Dest.PrettyPrint(0), a.Value.PrettyPrint(0))
+	return fmt.Sprintf("%s%s = %s", indent, a.Dest.PrettyPrint(0), a.Value.PrettyPrint(0))
 }
 
 func (r *Return) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%s %s", indent, r.Value.PrettyPrint(level))
+	return fmt.Sprintf("%s%s", indent, r.Value.PrettyPrint(level))
 }
 
 func (b *Block) PrettyPrint(level int) string {
@@ -195,8 +210,11 @@ func (b *Block) PrettyPrint(level int) string {
 
 	sb.WriteString(indent)
 	sb.WriteString("{\n")
-	for _, stmt := range b.Statements {
+	for i, stmt := range b.Statements {
 		sb.WriteString(stmt.PrettyPrint(level + 1))
+		if i < len(b.Statements)-1 {
+			sb.WriteString(";")
+		}
 		sb.WriteString("\n")
 	}
 	sb.WriteString(indent)
@@ -260,12 +278,24 @@ func (t *Tuple) PrettyPrint(level int) string {
 	return fmt.Sprintf("(%s)", strings.Join(values, ", "))
 }
 
+func typeArgs(types []Type) string {
+	if len(types) == 0 {
+		return ""
+	}
+
+	args := make([]string, len(types))
+	for i, typ := range types {
+		args[i] = typ.PrettyPrint(0)
+	}
+	return fmt.Sprintf("::<%s>", strings.Join(args, ", "))
+}
+
 func (f *FunctionCall) PrettyPrint(level int) string {
 	args := make([]string, len(f.Arguments))
 	for i, arg := range f.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s(%s)", f.FunctionName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s%s(%s)", f.FunctionName, typeArgs(f.TypeArgs), strings.Join(args, ", "))
 }
 
 func (s *StaticMethodCall) PrettyPrint(level int) string {
@@ -273,7 +303,7 @@ func (s *StaticMethodCall) PrettyPrint(level int) string {
 	for i, arg := range s.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s::%s(%s)", s.TypeName.PrettyPrint(level), s.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s::%s%s(%s)", s.TypeName.PrettyPrint(level), s.MethodName, typeArgs(s.TypeArgs), strings.Join(args, ", "))
 }
 
 func (m *MethodCall) PrettyPrint(level int) string {
@@ -281,7 +311,7 @@ func (m *MethodCall) PrettyPrint(level int) string {
 	for i, arg := range m.Arguments {
 		args[i] = arg.PrettyPrint(0)
 	}
-	return fmt.Sprintf("%s.%s(%s)", m.Value.PrettyPrint(level), m.MethodName, strings.Join(args, ", "))
+	return fmt.Sprintf("%s.%s%s(%s)", m.Value.PrettyPrint(level), m.MethodName, typeArgs(m.TypeArgs), strings.Join(args, ", "))
 }
 
 func (v *Variable) PrettyPrint(level int) string {
@@ -335,7 +365,11 @@ func (b *BoolLiteral) PrettyPrint(level int) string {
 	return "false"
 }
 
-func (t *Todo) PrettyPrint(level int) string {
+func (m *Macro) PrettyPrint(level int) string {
 	indent := strings.Repeat("    ", level)
-	return fmt.Sprintf("%stodo!()", indent)
+	args := make([]string, len(m.Args))
+	for i, arg := range m.Args {
+		args[i] = arg.PrettyPrint(0)
+	}
+	return fmt.Sprintf("%s%s!(%s)", m.Name, indent, strings.Join(args, ", "))
 }

@@ -37,7 +37,7 @@ func resolveType(typeField map[string]interface{}) Type {
 	case "fun":
 		argType := resolveType(typeField["arg"].(map[string]interface{}))
 		returnType := resolveType(typeField["res"].(map[string]interface{}))
-		return &MapType{ArgType: argType, ReturnType: returnType}
+		return &MapType{Key: argType, Value: returnType}
 	case "bool":
 		return &BoolType{}
 	case "tup":
@@ -60,7 +60,7 @@ func resolveDef(defField map[string]interface{}) Decl {
 	case "pureval":
 		name := defField["name"].(string)
 		valType := resolveType(defField["typeAnnotation"].(map[string]interface{}))
-		block := resolveBlock(defField["expr"].(map[string]interface{}), valType)
+		block := resolveExpr(defField["expr"].(map[string]interface{}), valType)
 		return &ConstDecl{Name: name, Type: valType, Value: block}
 	case "puredef":
 		// ====extract parameters====
@@ -102,31 +102,38 @@ func resolveDef(defField map[string]interface{}) Decl {
 		var params []Param
 		for i := 0; i < len(paramNames); i++ {
 			// Mutable is false because these are puredefs
-			params = append(params, Param{Name: paramNames[i], Type: paramTypes[i], Mutable: false})
+			params = append(params, Param{Name: paramNames[i], Type: paramTypes[i], Mutable: true})
 		}
 
 		return &FunctionDecl{Name: defField["name"].(string), Params: params, ReturnType: returnType, Body: statements.Statements}
+
+	case "val":
+		name := defField["name"].(string)
+		expr := resolveExpr(defField["expr"].(map[string]interface{}), &ConstType{Name: "Todo"})
+		return &ValDecl{Name: name, Value: expr}
+
 	default:
 		fmt.Println("qualifier not supported for resolving defs: " + defField["qualifier"].(string))
 	}
+
 	return nil
 }
 
-// resolveBlock resolves an expression block
-// the block should return something with the given exprType
-// we need the exprType because otherwise it is impossible to tell what type a certain record that will be returned is, and
-// rust needs that explicitly
-func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
+func resolveExpr(exprField map[string]interface{}, exprType Type) Expr {
 	switch exprField["kind"].(string) {
 	case "str":
-		literal := &StringLiteral{Value: exprField["value"].(string)}
-		return Block{Statements: []Stmt{&Return{Value: literal}}}
+		return &StringLiteral{Value: exprField["value"].(string)}
+
+	case "int":
+		return &UInt64Literal{Value: uint64(exprField["value"].(float64))}
+
 	case "app":
 		// this is an operator application
 
 		// find out the opcode
 		opcode := exprField["opcode"].(string)
 		switch opcode {
+
 		case "Rec": // we are building a record
 			args := exprField["args"].([]interface{})
 
@@ -143,17 +150,218 @@ func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
 				valueArg := args[i+1].(map[string]interface{})
 
 				// TODO: get the type from the type list, since we know the name of the record
-				value := resolveBlock(valueArg, nil)
+				value := resolveExpr(valueArg, nil)
 
-				fields[i/2] = FieldValue{Name: name, Value: &value}
+				fields[i/2] = FieldValue{Name: name, Value: value}
 			}
-			return Block{Statements: []Stmt{&Return{Value: &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}}}}
+
+			return &StructCons{StructName: exprType.PrettyPrint(0), Fields: fields}
+
+		case "Tup":
+			// this is a tuple
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Tuple{Values: values}
+
+		case "Set":
+			// this is a set
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Macro{Name: "im::hashset", Args: values}
+
+		case "List":
+			// this is a list
+			args := exprField["args"].([]interface{})
+			var values []Expr
+			for _, arg := range args {
+				values = append(values, resolveExpr(arg.(map[string]interface{}), &ConstType{Name: "Todo"}))
+			}
+			return &Macro{Name: "im::vector", Args: values}
+
+		case "iadd":
+			// addition
+			args := exprField["args"].([]interface{})
+			left := resolveExpr(args[0].(map[string]interface{}), &UInt64Type{})
+			right := resolveExpr(args[1].(map[string]interface{}), &UInt64Type{})
+			return &Add{Left: left, Right: right}
+
+		case "ite":
+			// this is an if-then-else expression
+			args := exprField["args"].([]interface{})
+			cond := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
+			then := resolveExpr(args[1].(map[string]interface{}), exprType)
+			els := resolveExpr(args[2].(map[string]interface{}), exprType)
+			return &IfElse{Condition: cond, Then: then, Else: els}
+
+		case "not":
+			// this is a not expression
+			args := exprField["args"].([]interface{})
+			expr := resolveExpr(args[0].(map[string]interface{}), &BoolType{})
+			return &Not{Value: expr}
+
+		// TODO: Specialize map.keys().contains(key) to map.contains(&key)
+		case "contains":
+			// this maps to `setExpr.contains(&value)`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			value := resolveExpr(args[1].(map[string]interface{}), nil)
+			return &MethodCall{
+				Value:      set,
+				MethodName: "contains",
+				Arguments:  []Expr{&Borrow{Value: value}},
+			}
+
+		case "union":
+			// this maps to `setExpr.union(otherSetExpr)`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			otherSet := resolveExpr(args[1].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			return &MethodCall{
+				Value:      set,
+				MethodName: "union",
+				Arguments:  []Expr{otherSet},
+				TypeArgs:   []Type{},
+			}
+
+		case "mapRemove":
+			// this maps to `setExpr.without(&key)`
+			args := exprField["args"].([]interface{})
+			set := resolveExpr(args[0].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			key := resolveExpr(args[1].(map[string]interface{}), &SetType{ElementType: WildcardType})
+			return &MethodCall{
+				Value:      set,
+				MethodName: "without",
+				Arguments:  []Expr{&Borrow{Value: key}},
+				TypeArgs:   []Type{},
+			}
+
+		case "keys":
+			// this maps to `mapExpr.keys().collect::<HashSet<_>>`
+			args := exprField["args"].([]interface{})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
+			keysExpr := &MethodCall{
+				Value:      mapExpr,
+				MethodName: "keys",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{},
+			}
+			return &MethodCall{
+				Value:      keysExpr,
+				MethodName: "collect",
+				TypeArgs:   []Type{&SetType{ElementType: WildcardType}},
+				Arguments:  []Expr{},
+			}
+
+		case "get":
+			// this maps to `mapExpr.get(&key).unwrap()`
+			args := exprField["args"].([]interface{})
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
+			keyExpr := resolveExpr(args[1].(map[string]interface{}), nil)
+			getExpr := &MethodCall{
+				Value:      mapExpr,
+				MethodName: "get",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{&Borrow{Value: keyExpr}},
+			}
+			return &MethodCall{
+				Value:      getExpr,
+				MethodName: "unwrap",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{},
+			}
+
+		case "put":
+			// this maps to `mapExpr.update(key, value)`
+			args := exprField["args"].([]interface{})
+			// mapType := exprType.(*MapType)
+			mapExpr := resolveExpr(args[0].(map[string]interface{}), &MapType{Key: WildcardType, Value: WildcardType})
+			keyExpr := resolveExpr(args[1].(map[string]interface{}), WildcardType)
+			valueExpr := resolveExpr(args[2].(map[string]interface{}), WildcardType)
+			return &MethodCall{
+				Value:      mapExpr,
+				MethodName: "update",
+				TypeArgs:   []Type{},
+				Arguments:  []Expr{keyExpr, valueExpr},
+			}
+
+		case "field":
+			// this is a field access
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			fieldName := args[1].(map[string]interface{})["value"].(string)
+			return &FieldAccess{Value: value, Field: fieldName}
+
+		case "with":
+			// this is a record update: { rec.field = value; rec }
+			args := exprField["args"].([]interface{})
+			rec := resolveExpr(args[0].(map[string]interface{}), nil)
+			fieldName := resolveExpr(args[1].(map[string]interface{}), nil).(*StringLiteral)
+			value := resolveExpr(args[2].(map[string]interface{}), &ConstType{Name: "Todo"})
+			assignExpr := &Assign{
+				Dest:  &FieldAccess{Value: rec, Field: fieldName.Value},
+				Value: value,
+			}
+			return &Block{Statements: []Stmt{assignExpr, &Return{Value: rec}}}
+
+		case "Ok":
+			// this maps to `StdResult::Ok(value)`
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			return &EnumCons{
+				EnumName: "StdResult",
+				Variant:  "Ok",
+				Params:   []Expr{value},
+			}
+
+		case "Err":
+			// this maps to `StdResult::Err(value)`
+			args := exprField["args"].([]interface{})
+			value := resolveExpr(args[0].(map[string]interface{}), nil)
+			return &EnumCons{
+				EnumName: "StdResult",
+				Variant:  "Ok",
+				Params:   []Expr{value},
+			}
+
 		default:
-			fmt.Println("kind not supported for resolving exprs: " + exprField["kind"].(string))
+			fmt.Println("app opcode not supported for resolving expr: " + opcode)
 		}
+
+	case "name":
+		// this is a variable
+		return &Variable{VariableName: exprField["name"].(string)}
+
+	case "let":
+		// this is a let expression
+		opdef := resolveDef(exprField["opdef"].(map[string]interface{})).(*ValDecl)
+		body := resolveExpr(exprField["expr"].(map[string]interface{}), exprType)
+		return &Let{VariableName: opdef.Name, Value: opdef.Value, Body: body}
+
+	default:
+		fmt.Println("kind not supported for resolving expr: " + exprField["kind"].(string))
 	}
 
-	return Block{Statements: []Stmt{&Todo{}}}
+	return &Todo
+}
+
+// resolveBlock resolves an expression block
+// the block should return something with the given exprType
+// we need the exprType because otherwise it is impossible to tell what type a certain record that will be returned is, and
+// rust needs that explicitly
+func resolveBlock(exprField map[string]interface{}, exprType Type) Block {
+	expr := resolveExpr(exprField, exprType)
+	return Block{Statements: []Stmt{&Return{Value: expr}}}
+}
+
+func prettyPrint(i interface{}) {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	fmt.Fprintln(os.Stderr, string(s))
 }
 
 func main() {
@@ -228,7 +436,8 @@ func main() {
 					structType := declType.(*StructType)
 
 					// this is a struct decl
-					declaration = &StructDecl{Name: name, Fields: structType.Fields}
+					attrs := []string{"derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)"}
+					declaration = &StructDecl{Name: name, Fields: structType.Fields, Attrs: attrs}
 				} else {
 					// this is a type decl
 					declaration = &TypeDecl{Name: name, Type: declType}
@@ -247,8 +456,10 @@ func main() {
 
 	// hard code some dependencies we might need. rust can just ignore what we do not need
 	imports := []Import{
-		{Path: "std::collections::HashMap"},
-		{Path: "std::collections::HashSet"},
+		{Path: "im::HashMap"},
+		{Path: "im::HashSet"},
+		{Path: "im::Vector"},
+		{Path: "serde::{Serialize, Deserialize}"},
 		{Path: "super::neutron_stdlib::*"},
 		{Path: "super::wasm_stdlib::*"},
 	}
