@@ -12,4 +12,4 @@ cosmwasm-std = "*"
 serde = { version = "*", features = ["derive"] }
 postcard = { version = "*", default-features = false, features = ["alloc"] }
 neutron-sdk = "*"
-im = "*"
+im = { version = "*", features = ["serde"] }

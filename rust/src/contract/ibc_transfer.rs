@@ -5,12 +5,12 @@ use im::HashSet;
 use im::Vector;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct InstantiateMsg {
     pub data: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ExecuteMsg_Send {
     pub channel: String,
     pub to: String,
@@ -29,7 +29,7 @@ pub const CONTRACT_NAME: String = "ibc_transfer".to_string();
 
 pub const CONTRACT_VERSION_STR: String = "0.1.0".to_string();
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ContractStorage {
     pub contractVersion: ContractVersion,
     pub replyQueue: HashMap<u64, String>,

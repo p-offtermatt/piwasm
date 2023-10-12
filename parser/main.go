@@ -436,7 +436,7 @@ func main() {
 					structType := declType.(*StructType)
 
 					// this is a struct decl
-					attrs := []string{"derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)"}
+					attrs := []string{"derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)"}
 					declaration = &StructDecl{Name: name, Fields: structType.Fields, Attrs: attrs}
 				} else {
 					// this is a type decl
